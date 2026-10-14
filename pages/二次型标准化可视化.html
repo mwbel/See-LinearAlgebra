@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>二次型标准化可视化</title>
+  <link rel="stylesheet" href="../shared-styles.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../linear-algebra-responsive.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="nav-title">线性代数</div>
+    <div class="nav-subtitle">模块导航</div>
+    <ul>
+      <li><a href="../index.html">模块概览</a></li>
+      <li><a href="二阶行列式可视化.html">二阶行列式</a></li>
+      <li><a href="三阶行列式可视化.html">三阶行列式</a></li>
+      <li><a href="矩阵运算可视化.html">矩阵运算</a></li>
+      <li><a href="向量空间可视化.html">向量空间</a></li>
+      <li><a href="线性变换可视化.html">线性变换</a></li>
+      <li><a href="矩阵高斯消元法可视化.html">高斯消元法</a></li>
+      <li><a href="特征值分解可视化.html">特征值分解</a></li>
+      <li><a href="旋转矩阵可视化.html">旋转矩阵</a></li>
+      <li><a href="正交分解可视化.html">正交分解</a></li>
+      <li><a href="奇异值分解可视化.html">奇异值分解</a></li>
+      <li><a href="最小二乘法可视化.html">最小二乘法</a></li>
+      <li class="active"><a href="二次型标准化可视化.html">二次型标准化</a></li>
+      <li><a href="线性方程组可视化.html">线性方程组</a></li>
+      <li><a href="向量投影可视化.html">向量投影</a></li>
+    </ul>
+  </div>
+  <div class="page-content">
+    <div class="content">
+      <!-- 左栏：代数定义与公式 -->
+      <section class="card">
+        <h3>二次型标准化</h3>
+        <div class="section-title">二次型定义</div>
+        <div class="mathjax-block">
+          <div class="formula">\[ f(x, y) = ax^2 + 2bxy + cy^2 \]</div>
+        </div>
+        <p style="font-size: 14px; color: #5f6368; line-height: 1.6;">
+          矩阵形式：\( f(\mathbf{x}) = \mathbf{x}^T A \mathbf{x} \)，其中
+        </p>
+        <div class="mathjax-block">
+          <div class="formula">\[ A = \begin{bmatrix} a & b \\ b & c \end{bmatrix} \]</div>
+        </div>
+
+        <div class="section-title">参数设置</div>
+        <div class="control-grid">
+          <div class="control">
+            <label>a (x²系数)</label>
+            <input id="a" type="number" step="0.1" value="2" />
+          </div>
+          <div class="control">
+            <label>b (xy系数/2)</label>
+            <input id="b" type="number" step="0.1" value="1" />
+          </div>
+          <div class="control">
+            <label>c (y²系数)</label>
+            <input id="c" type="number" step="0.1" value="2" />
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <button id="preset1">预设1: 椭圆</button>
+          <button id="preset2">预设2: 双曲线</button>
+          <button id="preset3">预设3: 抛物线</button>
+        </div>
+
+        <div class="section-title">标准形</div>
+        <div class="mathjax-block">
+          <div class="formula" id="standard-form">\[ f = \lambda_1 u^2 + \lambda_2 v^2 \]</div>
+        </div>
+
+        <div class="section-title">特征值</div>
+        <div class="mathjax-block">
+          <div class="formula" id="eigenvalues">\[ \lambda_1, \lambda_2 \]</div>
+        </div>
+
+        <div class="section-title">二次型分类</div>
+        <div class="mathjax-block">
+          <div class="formula" id="classification">\[ \text{类型判断} \]</div>
+        </div>
+      </section>
+
+      <!-- 右栏：几何意义与交互 -->
+      <section class="card">
+        <h3>几何意义与可视化</h3>
+        <div id="plot" class="viz"></div>
+        <div class="legend">
+          <strong>几何解释：</strong><br>
+          • 二次型 f(x,y) = c 的等高线是二次曲线<br>
+          • <span style="color: #3747ff;">蓝色曲线</span>：原坐标系下的等高线<br>
+          • <span style="color: #51cf66;">绿色箭头</span>：特征向量（主轴方向）<br>
+          • 正定：所有特征值 > 0（椭圆）<br>
+          • 负定：所有特征值 < 0（椭圆）<br>
+          • 不定：特征值异号（双曲线）<br>
+          • 半正定/半负定：有特征值 = 0（抛物线）
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // MathJax 配置
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+
+    function getParams() {
+      return {
+        a: parseFloat(document.getElementById('a').value),
+        b: parseFloat(document.getElementById('b').value),
+        c: parseFloat(document.getElementById('c').value)
+      };
+    }
+
+    // 计算特征值和特征向量
+    function computeEigen(a, b, c) {
+      // 特征值
+      const trace = a + c;
+      const det = a * c - b * b;
+      const discriminant = trace * trace - 4 * det;
+
+      const lambda1 = (trace + Math.sqrt(Math.max(0, discriminant))) / 2;
+      const lambda2 = (trace - Math.sqrt(Math.max(0, discriminant))) / 2;
+
+      // 特征向量
+      let v1, v2;
+      if (Math.abs(b) > 1e-10) {
+        v1 = [b, lambda1 - a];
+        v2 = [b, lambda2 - a];
+      } else {
+        v1 = [1, 0];
+        v2 = [0, 1];
+      }
+
+      // 归一化
+      const norm1 = Math.sqrt(v1[0]*v1[0] + v1[1]*v1[1]);
+      const norm2 = Math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]);
+      v1 = [v1[0]/norm1, v1[1]/norm1];
+      v2 = [v2[0]/norm2, v2[1]/norm2];
+
+      return { lambda1, lambda2, v1, v2 };
+    }
+
+    // 分类二次型
+    function classifyQuadraticForm(lambda1, lambda2) {
+      const eps = 1e-10;
+      if (lambda1 > eps && lambda2 > eps) {
+        return { type: '正定', description: '椭圆（所有特征值 > 0）' };
+      } else if (lambda1 < -eps && lambda2 < -eps) {
+        return { type: '负定', description: '椭圆（所有特征值 < 0）' };
+      } else if (lambda1 * lambda2 < -eps) {
+        return { type: '不定', description: '双曲线（特征值异号）' };
+      } else if (Math.abs(lambda1) < eps || Math.abs(lambda2) < eps) {
+        return { type: '半正定/半负定', description: '抛物线（有特征值 = 0）' };
+      }
+      return { type: '未知', description: '' };
+    }
+
+    function updatePlot() {
+      const { a, b, c } = getParams();
+      const eigen = computeEigen(a, b, c);
+      const classification = classifyQuadraticForm(eigen.lambda1, eigen.lambda2);
+
+      // 生成等高线数据
+      const xRange = [];
+      const yRange = [];
+      const zValues = [];
+
+      const step = 0.1;
+      for (let x = -3; x <= 3; x += step) {
+        xRange.push(x);
+      }
+      for (let y = -3; y <= 3; y += step) {
+        yRange.push(y);
+      }
+
+      for (let i = 0; i < yRange.length; i++) {
+        const row = [];
+        for (let j = 0; j < xRange.length; j++) {
+          const x = xRange[j];
+          const y = yRange[i];
+          const z = a * x * x + 2 * b * x * y + c * y * y;
+          row.push(z);
+        }
+        zValues.push(row);
+      }
+
+      const traces = [
+        {
+          x: xRange,
+          y: yRange,
+          z: zValues,
+          type: 'contour',
+          colorscale: 'Blues',
+          contours: {
+            start: -10,
+            end: 10,
+            size: 1
+          },
+          showscale: true
+        }
+      ];
+
+      // 添加特征向量
+      const scale = 2;
+      traces.push({
+        x: [0, eigen.v1[0] * scale],
+        y: [0, eigen.v1[1] * scale],
+        mode: 'lines+markers',
+        name: `v₁ (λ₁=${eigen.lambda1.toFixed(2)})`,
+        line: { color: '#51cf66', width: 3 },
+        marker: { size: 8 }
+      });
+      traces.push({
+        x: [0, eigen.v2[0] * scale],
+        y: [0, eigen.v2[1] * scale],
+        mode: 'lines+markers',
+        name: `v₂ (λ₂=${eigen.lambda2.toFixed(2)})`,
+        line: { color: '#ffa94d', width: 3 },
+        marker: { size: 8 }
+      });
+
+      const layout = {
+        title: '二次型等高线图',
+        xaxis: { title: 'x', range: [-3, 3] },
+        yaxis: { title: 'y', range: [-3, 3], scaleanchor: 'x' },
+        showlegend: true,
+        hovermode: 'closest',
+        plot_bgcolor: '#f8f8ff',
+        paper_bgcolor: '#ffffff'
+      };
+
+      Plotly.newPlot('plot', traces, layout, { responsive: true });
+
+      // 更新公式显示
+      document.getElementById('standard-form').innerHTML = `
+        \\[ f = ${eigen.lambda1.toFixed(3)} u^2 + ${eigen.lambda2.toFixed(3)} v^2 \\]
+      `;
+
+      document.getElementById('eigenvalues').innerHTML = `
+        \\[ \\lambda_1 = ${eigen.lambda1.toFixed(3)}, \\quad \\lambda_2 = ${eigen.lambda2.toFixed(3)} \\]
+      `;
+
+      document.getElementById('classification').innerHTML = `
+        \\[ \\text{${classification.type}} \\]
+        <div style="font-size: 13px; color: #5f6368; margin-top: 8px;">${classification.description}</div>
+      `;
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    }
+
+    // 预设按钮
+    document.getElementById('preset1').addEventListener('click', () => {
+      document.getElementById('a').value = 2;
+      document.getElementById('b').value = 0;
+      document.getElementById('c').value = 3;
+      updatePlot();
+    });
+
+    document.getElementById('preset2').addEventListener('click', () => {
+      document.getElementById('a').value = 1;
+      document.getElementById('b').value = 0;
+      document.getElementById('c').value = -1;
+      updatePlot();
+    });
+
+    document.getElementById('preset3').addEventListener('click', () => {
+      document.getElementById('a').value = 1;
+      document.getElementById('b').value = 0;
+      document.getElementById('c').value = 0;
+      updatePlot();
+    });
+
+    // 监听输入变化
+    ['a', 'b', 'c'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updatePlot);
+    });
+
+    // 初始化
+    updatePlot();
+  </script>
+    <script src="../linear-algebra-layout.js"></script>
+</body>
+</html>

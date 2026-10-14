@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>最小二乘法可视化</title>
+  <link rel="stylesheet" href="../shared-styles.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../linear-algebra-responsive.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="nav-title">线性代数</div>
+    <div class="nav-subtitle">模块导航</div>
+    <ul>
+      <li><a href="../index.html">模块概览</a></li>
+      <li><a href="二阶行列式可视化.html">二阶行列式</a></li>
+      <li><a href="三阶行列式可视化.html">三阶行列式</a></li>
+      <li><a href="矩阵运算可视化.html">矩阵运算</a></li>
+      <li><a href="向量空间可视化.html">向量空间</a></li>
+      <li><a href="线性变换可视化.html">线性变换</a></li>
+      <li><a href="矩阵高斯消元法可视化.html">高斯消元法</a></li>
+      <li><a href="特征值分解可视化.html">特征值分解</a></li>
+      <li><a href="旋转矩阵可视化.html">旋转矩阵</a></li>
+      <li><a href="正交分解可视化.html">正交分解</a></li>
+      <li><a href="奇异值分解可视化.html">奇异值分解</a></li>
+      <li class="active"><a href="最小二乘法可视化.html">最小二乘法</a></li>
+      <li><a href="线性方程组可视化.html">线性方程组</a></li>
+      <li><a href="向量投影可视化.html">向量投影</a></li>
+    </ul>
+  </div>
+  <div class="page-content">
+    <div class="content">
+      <!-- 左栏：代数定义与公式 -->
+      <section class="card">
+        <h3>最小二乘法</h3>
+        <div class="section-title">问题描述</div>
+        <p style="font-size: 14px; color: #5f6368; line-height: 1.6;">
+          给定数据点 (x₁, y₁), (x₂, y₂), ..., (xₙ, yₙ)，<br>
+          寻找最佳拟合直线 y = ax + b，使得误差平方和最小。
+        </p>
+
+        <div class="section-title">正规方程</div>
+        <div class="mathjax-block">
+          <div class="formula">\[ A^T A \mathbf{x} = A^T \mathbf{b} \]</div>
+        </div>
+        <p style="font-size: 14px; color: #5f6368; line-height: 1.6;">
+          其中 A 是设计矩阵，x = [a, b]ᵀ 是待求参数
+        </p>
+
+        <div class="section-title">数据点设置</div>
+        <div style="margin-bottom: 12px;">
+          <button id="addPoint">添加数据点</button>
+          <button id="clearPoints">清除所有点</button>
+          <button id="preset1">预设1: 线性数据</button>
+          <button id="preset2">预设2: 带噪声</button>
+          <button id="preset3">预设3: 离群点</button>
+        </div>
+
+        <div id="pointsList" style="max-height: 200px; overflow-y: auto; background: #f6f7ff; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+          <div style="font-size: 12px; color: #5f6368;">点击图表添加数据点，或使用预设数据</div>
+        </div>
+
+        <div class="section-title">拟合结果</div>
+        <div class="mathjax-block">
+          <div class="formula" id="fit-result">\[ y = ax + b \]</div>
+        </div>
+
+        <div class="section-title">误差统计</div>
+        <div class="mathjax-block">
+          <div class="formula" id="error-stats">\[ \text{点击计算查看误差} \]</div>
+        </div>
+      </section>
+
+      <!-- 右栏：几何意义与交互 -->
+      <section class="card">
+        <h3>可视化与交互</h3>
+        <div id="plot" class="viz"></div>
+        <div class="legend">
+          <strong>操作说明：</strong><br>
+          • 点击图表添加数据点<br>
+          • <span style="color: #3747ff;">蓝色点</span>：数据点<br>
+          • <span style="color: #ff6b6b;">红色线</span>：最小二乘拟合直线<br>
+          • <span style="color: #51cf66;">绿色虚线</span>：误差（残差）<br>
+          • 最小二乘法最小化所有误差的平方和<br>
+          • 拟合直线通过数据点的"中心"
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // MathJax 配置
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+
+    let dataPoints = [];
+
+    // 最小二乘法计算
+    function leastSquares(points) {
+      if (points.length < 2) return { a: 0, b: 0 };
+
+      const n = points.length;
+      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+      for (let i = 0; i < n; i++) {
+        sumX += points[i].x;
+        sumY += points[i].y;
+        sumXY += points[i].x * points[i].y;
+        sumX2 += points[i].x * points[i].x;
+      }
+
+      const a = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+      const b = (sumY - a * sumX) / n;
+
+      return { a, b };
+    }
+
+    // 计算误差统计
+    function computeErrors(points, a, b) {
+      let sumSquaredError = 0;
+      let sumAbsError = 0;
+
+      for (let i = 0; i < points.length; i++) {
+        const predicted = a * points[i].x + b;
+        const error = points[i].y - predicted;
+        sumSquaredError += error * error;
+        sumAbsError += Math.abs(error);
+      }
+
+      const mse = sumSquaredError / points.length;
+      const rmse = Math.sqrt(mse);
+      const mae = sumAbsError / points.length;
+
+      return { mse, rmse, mae, sumSquaredError };
+    }
+
+    function updatePlot() {
+      const traces = [];
+
+      // 数据点
+      if (dataPoints.length > 0) {
+        traces.push({
+          x: dataPoints.map(p => p.x),
+          y: dataPoints.map(p => p.y),
+          mode: 'markers',
+          name: '数据点',
+          marker: { color: '#3747ff', size: 10 }
+        });
+      }
+
+      // 拟合直线
+      if (dataPoints.length >= 2) {
+        const fit = leastSquares(dataPoints);
+        const xRange = [-5, 5];
+        const yFit = xRange.map(x => fit.a * x + fit.b);
+
+        traces.push({
+          x: xRange,
+          y: yFit,
+          mode: 'lines',
+          name: '拟合直线',
+          line: { color: '#ff6b6b', width: 3 }
+        });
+
+        // 绘制误差线
+        for (let i = 0; i < dataPoints.length; i++) {
+          const predicted = fit.a * dataPoints[i].x + fit.b;
+          traces.push({
+            x: [dataPoints[i].x, dataPoints[i].x],
+            y: [dataPoints[i].y, predicted],
+            mode: 'lines',
+            name: i === 0 ? '误差' : '',
+            showlegend: i === 0,
+            line: { color: '#51cf66', width: 2, dash: 'dash' }
+          });
+        }
+
+        // 更新拟合结果
+        document.getElementById('fit-result').innerHTML = `
+          \\[ y = ${fit.a.toFixed(3)}x + ${fit.b.toFixed(3)} \\]
+        `;
+
+        // 更新误差统计
+        const errors = computeErrors(dataPoints, fit.a, fit.b);
+        document.getElementById('error-stats').innerHTML = `
+          \\[ \\begin{aligned}
+          \\text{误差平方和} &= ${errors.sumSquaredError.toFixed(3)} \\\\
+          \\text{均方误差(MSE)} &= ${errors.mse.toFixed(3)} \\\\
+          \\text{均方根误差(RMSE)} &= ${errors.rmse.toFixed(3)} \\\\
+          \\text{平均绝对误差(MAE)} &= ${errors.mae.toFixed(3)}
+          \\end{aligned} \\]
+        `;
+
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise();
+        }
+      }
+
+      const layout = {
+        title: '最小二乘法拟合',
+        xaxis: { title: 'x', range: [-5, 5], zeroline: true },
+        yaxis: { title: 'y', range: [-5, 5], zeroline: true },
+        showlegend: true,
+        hovermode: 'closest',
+        plot_bgcolor: '#f8f8ff',
+        paper_bgcolor: '#ffffff'
+      };
+
+      Plotly.newPlot('plot', traces, layout, { responsive: true });
+
+      // 添加点击事件
+      document.getElementById('plot').on('plotly_click', function(data) {
+        const point = data.points[0];
+        dataPoints.push({ x: point.x, y: point.y });
+        updatePointsList();
+        updatePlot();
+      });
+
+      updatePointsList();
+    }
+
+    function updatePointsList() {
+      const list = document.getElementById('pointsList');
+      if (dataPoints.length === 0) {
+        list.innerHTML = '<div style="font-size: 12px; color: #5f6368;">点击图表添加数据点，或使用预设数据</div>';
+      } else {
+        list.innerHTML = dataPoints.map((p, i) => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.06);">
+            <span style="font-size: 13px;">点${i+1}: (${p.x.toFixed(2)}, ${p.y.toFixed(2)})</span>
+            <button onclick="removePoint(${i})" style="padding: 4px 8px; font-size: 11px;">删除</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function removePoint(index) {
+      dataPoints.splice(index, 1);
+      updatePlot();
+    }
+
+    // 预设按钮
+    document.getElementById('preset1').addEventListener('click', () => {
+      dataPoints = [
+        { x: -4, y: -3.5 },
+        { x: -2, y: -1.8 },
+        { x: 0, y: 0.2 },
+        { x: 2, y: 2.1 },
+        { x: 4, y: 4.3 }
+      ];
+      updatePlot();
+    });
+
+    document.getElementById('preset2').addEventListener('click', () => {
+      dataPoints = [
+        { x: -4, y: -3.2 },
+        { x: -3, y: -2.5 },
+        { x: -2, y: -1.3 },
+        { x: -1, y: -0.8 },
+        { x: 0, y: 0.3 },
+        { x: 1, y: 1.2 },
+        { x: 2, y: 1.8 },
+        { x: 3, y: 3.1 },
+        { x: 4, y: 3.9 }
+      ];
+      updatePlot();
+    });
+
+    document.getElementById('preset3').addEventListener('click', () => {
+      dataPoints = [
+        { x: -4, y: -3.5 },
+        { x: -2, y: -1.8 },
+        { x: 0, y: 0.2 },
+        { x: 2, y: 2.1 },
+        { x: 3, y: -2 },  // 离群点
+        { x: 4, y: 4.3 }
+      ];
+      updatePlot();
+    });
+
+    document.getElementById('addPoint').addEventListener('click', () => {
+      const x = Math.random() * 8 - 4;
+      const y = x + Math.random() * 2 - 1;
+      dataPoints.push({ x, y });
+      updatePlot();
+    });
+
+    document.getElementById('clearPoints').addEventListener('click', () => {
+      dataPoints = [];
+      updatePlot();
+    });
+
+    // 初始化
+    updatePlot();
+  </script>
+    <script src="../linear-algebra-layout.js"></script>
+</body>
+</html>

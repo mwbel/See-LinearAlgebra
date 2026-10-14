@@ -1,0 +1,409 @@
+/* Shared responsive three-column course layout for the registered visualizations. */
+.la-layout-shell {
+  --la-nav-width: 220px;
+  --la-concept-width: 390px;
+  display: grid !important;
+  grid-template-columns:
+    minmax(170px, var(--la-nav-width))
+    12px
+    minmax(290px, var(--la-concept-width))
+    12px
+    minmax(390px, 1fr);
+  grid-template-areas:
+    "heading heading heading heading heading"
+    "navigation split-a concept split-b visualization";
+  align-items: start;
+  gap: 0;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 12px !important;
+  overflow: visible;
+}
+
+.la-layout-heading,
+.la-layout-shell > .header,
+.la-layout-shell > .page-header,
+.la-layout-shell > .module-header {
+  grid-area: heading;
+  min-width: 0;
+  width: 100%;
+  max-width: none !important;
+  margin: 0 0 12px !important;
+}
+
+.la-layout-shell > .la-sidebar {
+  grid-area: navigation;
+  position: sticky !important;
+  top: 12px !important;
+  left: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: calc(100vh - 24px);
+  min-width: 0;
+  margin: 0 !important;
+  overflow: auto;
+  z-index: 2;
+}
+
+.la-course-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.la-course-nav-list a[aria-current="page"] {
+  color: #3747ff;
+  font-weight: 700;
+}
+
+.la-sidebar .la-overview-link,
+.la-sidebar .la-home-link {
+  display: block;
+  margin: 6px 0;
+  padding: 7px 10px;
+}
+
+.la-layout-contents { display: contents !important; }
+
+.la-layout-extras {
+  grid-column: 3 / 6;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.la-layout-extras .example-grid,
+.la-layout-extras .feature-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)) !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.la-layout-extras .example-card,
+.la-layout-extras .feature-card { min-width: 0; max-width: 100%; }
+
+.la-tab-workspace {
+  grid-column: 3 / 6;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.la-tab-workspace .tab-content { width: 100%; min-width: 0; }
+
+.la-tab-main {
+  display: grid !important;
+  grid-template-columns: minmax(0, var(--la-concept-width, 390px)) 12px minmax(0, 1fr) !important;
+  align-items: start;
+  width: 100%;
+  max-width: none !important;
+  min-width: 0;
+  gap: 0 !important;
+}
+
+.la-tab-controls { grid-column: 1; min-width: 0; }
+.la-tab-visual { grid-column: 3; min-width: 0; }
+.la-tab-splitter { grid-column: 2; grid-row: 1 / span 20; }
+
+.la-layout-splitter {
+  align-self: stretch;
+  justify-self: center;
+  width: 12px;
+  min-height: 150px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+  position: relative;
+  z-index: 3;
+}
+
+.la-layout-splitter::before {
+  content: "";
+  position: absolute;
+  inset: 0 5px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background-color 120ms ease, inset 120ms ease;
+}
+
+.la-layout-splitter:hover::before,
+.la-layout-splitter:focus-visible::before {
+  inset: 0 3px;
+  background: #4353ff;
+}
+
+.la-layout-splitter:focus-visible {
+  outline: 2px solid #4353ff;
+  outline-offset: 1px;
+}
+
+.la-splitter-navigation { grid-area: split-a; }
+.la-splitter-concept { grid-area: split-b; }
+
+.la-concept-column,
+.la-visualization-column {
+  min-width: 0;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 8px;
+}
+
+.la-concept-column { grid-area: concept; }
+.la-visualization-column { grid-area: visualization; }
+
+.la-concept-column > *,
+.la-visualization-column > * {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.la-concept-column > .card,
+.la-concept-column .card,
+.la-visualization-column > .card,
+.la-concept-column > .theory-section,
+.la-visualization-column > .visualization-section {
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 0 16px !important;
+}
+
+.la-concept-column .mathjax-block,
+.la-concept-column .formula,
+.la-concept-column .formula-container {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.la-layout-shell mjx-container {
+  display: block;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+}
+
+.la-layout-shell .MathJax_Display {
+  display: block !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+}
+
+.la-layout-shell .MathJax {
+  display: inline-block !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  vertical-align: middle;
+}
+
+.la-layout-shell .formula,
+.la-layout-shell .mathjax-block,
+.la-layout-shell .formula-container {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+}
+
+.la-concept-column .control-grid,
+.la-concept-column .controls,
+.la-concept-column .controls-row {
+  min-width: 0;
+  max-width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)) !important;
+}
+
+.la-concept-column .control,
+.la-concept-column label { min-width: 0; max-width: 100%; }
+.la-concept-column input,
+.la-concept-column select,
+.la-concept-column textarea { min-width: 0; width: 100%; max-width: 100%; }
+
+.la-tab-workspace .matrix-input,
+.la-tab-workspace .vector-input {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.la-tab-workspace .vector-controls {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.la-tab-workspace input,
+.la-tab-workspace select,
+.la-tab-workspace textarea {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.la-tab-workspace .matrix-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.la-concept-column .elementary-controls,
+.la-concept-column .controls,
+.la-concept-column .control-grid,
+.la-concept-column .controls-row,
+.la-concept-column .control-group {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)) !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.la-visualization-column .viz,
+.la-visualization-column .plot,
+.la-visualization-column .plot-container,
+.la-visualization-column .visualization,
+.la-visualization-column [id*="plot"],
+.la-visualization-column [id*="chart"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.la-visualization-column .js-plotly-plot,
+.la-tab-visual .js-plotly-plot,
+.la-visualization-column .plot-container.plotly,
+.la-tab-visual .plot-container.plotly,
+.la-visualization-column canvas,
+.la-visualization-column svg {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+@media (max-width: 1120px) {
+  body {
+    display: block !important;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 !important;
+    overflow-x: clip;
+  }
+
+  .la-layout-shell {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    width: 100% !important;
+    flex: none !important;
+    box-sizing: border-box;
+    padding: 10px !important;
+    overflow-x: clip;
+  }
+
+  .la-tab-main,
+  .la-tab-workspace,
+  .la-tab-workspace .tab-content,
+  .la-concept-column,
+  .la-visualization-column { min-width: 0 !important; max-width: 100% !important; }
+
+  .la-layout-shell > .la-sidebar {
+    position: static !important;
+    width: 100% !important;
+    max-height: none;
+    overflow: visible;
+    padding: 8px !important;
+  }
+
+  .la-sidebar > h3 { display: none; }
+
+  .la-sidebar ul,
+  .la-sidebar .la-course-nav-list {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    margin: 0 !important;
+    padding: 0 0 4px !important;
+    overflow-x: auto;
+    white-space: nowrap;
+    list-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .la-sidebar li { flex: 0 0 auto; margin: 0 !important; }
+
+  .la-sidebar a {
+    display: block;
+    padding: 7px 10px !important;
+    white-space: nowrap;
+  }
+
+  .la-layout-splitter { display: none !important; }
+  .la-concept-column,
+  .la-visualization-column { width: 100%; padding: 0; }
+  .la-layout-heading { order: 0; }
+  .la-sidebar { order: 1; }
+  .la-tab-workspace { order: 2; width: 100%; }
+  .la-layout-extras { order: 4; }
+  .la-concept-column { order: 2; }
+  .la-visualization-column { order: 3; }
+  .la-tab-main { display: flex !important; flex-direction: column; gap: 12px !important; }
+  .la-tab-controls,
+  .la-tab-visual { width: 100%; }
+  .la-tab-workspace .vector-controls { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 600px) {
+  .la-layout-shell { padding: 8px !important; }
+  .la-layout-heading { margin-bottom: 4px !important; }
+  .la-concept-column,
+  .la-visualization-column { overflow-wrap: anywhere; }
+  .la-concept-column .control-grid,
+  .la-concept-column .controls-row,
+  .la-concept-column .controls,
+  .la-concept-column .control-group,
+  .la-concept-column .vector-controls {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .la-concept-column .control-grid,
+  .la-concept-column .elementary-controls,
+  .la-concept-column .controls,
+  .la-concept-column .controls-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .la-concept-column .card { overflow-x: auto; }
+  .la-concept-column .mathjax-block,
+  .la-concept-column .formula,
+  .la-concept-column .formula-container { overflow-x: auto; }
+  .la-concept-column input,
+  .la-concept-column select,
+  .la-concept-column button,
+  .la-concept-column textarea { max-width: 100%; }
+  .la-visualization-column .js-plotly-plot,
+  .la-tab-visual .js-plotly-plot,
+  .la-visualization-column .plot-container,
+  .la-visualization-column .viz,
+  .la-visualization-column .plot { max-width: 100% !important; }
+}
+
+@media (max-width: 400px) {
+  .la-concept-column .control-grid,
+  .la-concept-column .elementary-controls,
+  .la-concept-column .controls,
+  .la-concept-column .controls-row,
+  .la-tab-workspace .matrix-input,
+  .la-tab-workspace .vector-input {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .la-tab-workspace .vector-controls { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}

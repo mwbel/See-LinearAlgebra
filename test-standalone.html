@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>线性代数模块集成测试 - 独立模式</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      background: #3747ff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #2937dd;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #6c757d;
+    }
+
+    button.secondary:hover {
+      background: #5a6268;
+    }
+
+    select {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    #module-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      min-height: 600px;
+      padding: 20px;
+    }
+
+    .status {
+      background: #e8f0fe;
+      color: #1967d2;
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .status.error {
+      background: #fce8e6;
+      color: #d93025;
+    }
+
+    .status.success {
+      background: #e6f4ea;
+      color: #1e8e3e;
+    }
+
+    .log {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      margin-bottom: 5px;
+      color: #495057;
+    }
+
+    .log-entry.error {
+      color: #d93025;
+    }
+
+    .log-entry.success {
+      color: #1e8e3e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧪 线性代数模块集成测试</h1>
+      <p class="subtitle">测试模式：独立模式 | 测试模块的基本加载和功能</p>
+    </header>
+
+    <div class="controls">
+      <div class="control-group">
+        <button onclick="initModule()">初始化模块</button>
+        <button onclick="loadVisualization()" class="secondary">加载可视化</button>
+        <select id="viz-select">
+          <option value="">选择可视化...</option>
+          <option value="determinant-2d">二阶行列式</option>
+          <option value="determinant-3d">三阶行列式</option>
+          <option value="eigenvalue">特征值分解</option>
+          <option value="svd">奇异值分解</option>
+          <option value="linear-transformation">线性变换</option>
+        </select>
+        <button onclick="switchTheme('default')" class="secondary">默认主题</button>
+        <button onclick="switchTheme('dark')" class="secondary">暗色主题</button>
+        <button onclick="showList()" class="secondary">显示列表</button>
+        <button onclick="clearContainer()" class="secondary">清空容器</button>
+      </div>
+    </div>
+
+    <div id="status" class="status" style="display: none;"></div>
+
+    <div id="module-container">
+      <p style="color: #999; text-align: center; padding: 50px;">
+        点击"初始化模块"开始测试
+      </p>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- 引入模块文件 -->
+  <script src="./module.config.js"></script>
+  <script src="./linear-algebra-loader.js"></script>
+  <script src="./linear-algebra-api.js"></script>
+
+  <script>
+    let isInitialized = false;
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.textContent = `[${timestamp}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+      console.log(message);
+    }
+
+    function showStatus(message, type = 'info') {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+      statusDiv.style.display = 'block';
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+      }, 5000);
+    }
+
+    async function initModule() {
+      log('开始初始化模块...');
+      showStatus('正在初始化模块...', 'info');
+
+      try {
+        const result = await LinearAlgebra.init({
+          basePath: './',
+          theme: 'default',
+          enableDatabase: true,
+          enablePageGenerator: true
+        });
+
+        if (result.success) {
+          isInitialized = true;
+          log('模块初始化成功！', 'success');
+          showStatus('✓ 模块初始化成功', 'success');
+
+          // 显示模块信息
+          const version = LinearAlgebra.getVersion();
+          log(`模块版本: ${version}`, 'success');
+
+          const vizList = LinearAlgebra.getVisualizationList();
+          log(`可用可视化数量: ${vizList.length}`, 'success');
+        } else {
+          log(`初始化失败: ${result.error}`, 'error');
+          showStatus('✗ 初始化失败', 'error');
+        }
+      } catch (error) {
+        log(`初始化错误: ${error.message}`, 'error');
+        showStatus('✗ 初始化错误', 'error');
+        console.error(error);
+      }
+    }
+
+    async function loadVisualization() {
+      if (!isInitialized) {
+        showStatus('请先初始化模块', 'error');
+        log('错误: 模块未初始化', 'error');
+        return;
+      }
+
+      const select = document.getElementById('viz-select');
+      const vizId = select.value;
+
+      if (!vizId) {
+        showStatus('请选择一个可视化', 'error');
+        return;
+      }
+
+      log(`加载可视化: ${vizId}`);
+      showStatus(`正在加载 ${vizId}...`, 'info');
+
+      try {
+        await LinearAlgebra.loadVisualization(vizId, '#module-container');
+        log(`可视化 ${vizId} 加载成功`, 'success');
+        showStatus('✓ 可视化加载成功', 'success');
+      } catch (error) {
+        log(`加载失败: ${error.message}`, 'error');
+        showStatus('✗ 加载失败', 'error');
+        console.error(error);
+      }
+    }
+
+    function switchTheme(themeName) {
+      if (!isInitialized) {
+        showStatus('请先初始化模块', 'error');
+        return;
+      }
+
+      log(`切换主题: ${themeName}`);
+      LinearAlgebra.setTheme(themeName);
+      showStatus(`✓ 已切换到 ${themeName} 主题`, 'success');
+    }
+
+    async function showList() {
+      if (!isInitialized) {
+        showStatus('请先初始化模块', 'error');
+        return;
+      }
+
+      log('显示可视化列表');
+      showStatus('正在加载列表...', 'info');
+
+      try {
+        await LinearAlgebra.createEmbeddedView('#module-container', {
+          width: '100%',
+          height: '600px'
+        });
+        log('列表显示成功', 'success');
+        showStatus('✓ 列表加载成功', 'success');
+      } catch (error) {
+        log(`显示列表失败: ${error.message}`, 'error');
+        showStatus('✗ 显示列表失败', 'error');
+        console.error(error);
+      }
+    }
+
+    function clearContainer() {
+      const container = document.getElementById('module-container');
+      container.innerHTML = '<p style="color: #999; text-align: center; padding: 50px;">容器已清空</p>';
+      log('容器已清空');
+      showStatus('✓ 容器已清空', 'success');
+    }
+
+    // 监听模块事件
+    window.addEventListener('linearAlgebraModuleReady', (event) => {
+      log('收到模块就绪事件', 'success');
+      console.log('模块配置:', event.detail);
+    });
+
+    // 页面加载完成
+    window.addEventListener('DOMContentLoaded', () => {
+      log('测试页面加载完成');
+      log('准备就绪，可以开始测试');
+    });
+  </script>
+</body>
+</html>

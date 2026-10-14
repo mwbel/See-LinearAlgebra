@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>行列式性质</title>
+  <link rel="stylesheet" href="../linear-algebra-responsive.css">
+  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}};</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#243047;background:#f4f6fb}*{box-sizing:border-box}body{margin:0;background:#f4f6fb}.page-content{min-width:0;padding:16px}.container{max-width:1500px;margin:auto}.header h1{margin:0;color:#2738d9;font-size:clamp(1.5rem,3vw,2.2rem)}.header p{color:#63708a;margin:.4rem 0 1rem}.main-content{display:grid;grid-template-columns:minmax(300px,.95fr) minmax(340px,1.05fr);gap:16px;align-items:start}.theory-section,.visualization-section,.panel{background:#fff;border:1px solid #e0e6f0;border-radius:14px;padding:18px;box-shadow:0 5px 18px #263d6710;min-width:0}.section-title{font-size:1.2rem;margin:0 0 14px;border-bottom:3px solid #3949ff;padding-bottom:10px;color:#35415a}.control-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}.control-row label{font-weight:650}.control-row select,.control-row input{font:inherit;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;max-width:100%}.matrix-scroll{overflow:auto;max-width:100%;padding:4px}.matrix{display:grid;gap:6px;padding:7px 9px;width:max-content;max-width:100%;margin:8px auto;border-left:2px solid #59657a;border-right:2px solid #59657a}.matrix-cell{min-width:52px;max-width:72px}.matrix-cell input{width:100%;padding:7px 3px;border:1px solid #d8deea;border-radius:6px;text-align:center;font:inherit;font-variant-numeric:tabular-nums}.matrix-display{display:grid;gap:5px;width:max-content;margin:auto}.matrix-display span{min-width:42px;padding:5px 7px;text-align:center;border-radius:5px;background:#f7f8fc;font-variant-numeric:tabular-nums}.matrix-display span.changed{background:#ffedbd;color:#735000;font-weight:700}.result{padding:12px 14px;border-radius:10px;background:#edf4ff;margin:12px 0;line-height:1.75;overflow-wrap:anywhere}.relation{font-size:1.05rem;font-weight:650;color:#2635c7}.proof{padding:13px;margin:12px 0;background:#f7f8ff;border:1px solid #e1e6ff;border-radius:9px;line-height:1.65}.proof h3{font-size:1.02rem;color:#3442d6;margin:0 0 6px}.muted{color:#64748b;font-size:.93rem}.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px}.compare-card{min-width:0;padding:10px;border:1px solid #e1e7f0;border-radius:9px}.compare-card h3{margin:0 0 8px;font-size:.97rem;text-align:center}.status{color:#245a45}@media(max-width:900px){.main-content{grid-template-columns:1fr}}@media(max-width:520px){.page-content{padding:8px}.container{padding:4px}.theory-section,.visualization-section,.panel{padding:13px}.compare{grid-template-columns:1fr}.matrix-cell{min-width:44px}.matrix-cell input{font-size:.9rem}}
+  </style>
+</head>
+<body>
+  <main class="page-content"><div class="container">
+    <header class="header"><h1>行列式性质</h1><p>选择行或列操作，观察矩阵改变时行列式如何响应</p></header>
+    <div class="main-content">
+      <section class="theory-section">
+        <h2 class="section-title">操作控制台</h2>
+        <div class="control-row"><label for="order">阶数</label><select id="order"><option>2</option><option selected>3</option><option>4</option><option>5</option></select><label for="operation">性质</label><select id="operation"><option value="transpose">转置不变</option><option value="swap">交换两行（列）</option><option value="scale">一行（列）数乘</option><option value="additivity">按行（列）可加</option><option value="addMultiple">一行（列）加另一行（列）的倍数</option><option value="proportional">相同或成比例的行（列）</option></select></div>
+        <div class="control-row"><label for="axis">操作方向</label><select id="axis"><option value="row">行</option><option value="column">列</option></select><label for="indexA">目标序号</label><select id="indexA"></select><label for="indexB">另一个序号</label><select id="indexB"></select><label for="factor">系数</label><input id="factor" type="number" step="any" value="2"></div>
+        <div id="vectorControls" class="control-row" hidden><label for="vector">待相加向量（逗号分隔）</label><input id="vector" type="text" value="1, 2, -1" aria-describedby="vectorHelp"><span id="vectorHelp" class="muted">元素个数应与矩阵阶数一致</span></div>
+        <h3 class="section-title">可编辑矩阵 A</h3>
+        <div class="matrix-scroll"><div id="matrix" class="matrix" aria-label="可编辑矩阵"></div></div>
+        <div class="result"><strong>det(A) = </strong><span id="detValue" aria-live="polite"></span></div>
+        <div class="proof"><h3>行列式性质小结</h3><div>1. 转置不改变行列式。　2. 交换两行（列），行列式变号。<br>3. 一行（列）乘以 (c)，行列式也乘以 (c)。<br>4. 对某行（列）线性：该行（列）拆成两部分时，行列式等于两项之和。<br>5. 一行（列）加另一行（列）的倍数，行列式不变。</div><p class="muted">推论：两行（列）相同或成比例时行列式为 0；某行（列）有公因子时，可以把因子提出到行列式外。</p></div>
+      </section>
+      <section class="visualization-section">
+        <h2 class="section-title">操作前后对照</h2>
+        <div id="relation" class="result relation" aria-live="polite"></div>
+        <div id="comparison" class="compare"></div>
+        <div id="details" class="result"></div>
+        <article class="proof"><h3>符号约定</h3><p>行列式对每一行、每一列分别具有线性。交换两行或两列会改变排列的奇偶性，因此行列式变号。对一行（列）加上另一行（列）的倍数，新增部分含有两行（列）成比例，行列式为零，所以总值不变。</p></article>
+      </section>
+    </div>
+  </div></main>
+  <script src="../linear-algebra-determinant-core.js"></script>
+  <script>
+  (() => {
+    const core = window.LinearAlgebraDeterminantCore, $ = (id) => document.getElementById(id);
+    let n = 3, data = [[1,2,3],[0,1,4],[5,6,0]];
+    const fmt = (value) => Number(value.toPrecision(7)).toString();
+    const clone = (m) => m.map((row) => [...row]);
+    function selectIndex(select, value) { select.replaceChildren(); for (let i=0;i<n;i+=1) { const option=document.createElement('option'); option.value=i; option.textContent=String(i+1); select.append(option); } select.value=String(Math.min(value,n-1)); }
+    function renderInputMatrix() {
+      const root=$('matrix'); root.style.gridTemplateColumns=`repeat(${n},minmax(44px,1fr))`; root.replaceChildren();
+      for(let r=0;r<n;r+=1) for(let c=0;c<n;c+=1) { const cell=document.createElement('div');cell.className='matrix-cell';const input=document.createElement('input');input.type='number';input.step='any';input.value=data[r][c];input.setAttribute('aria-label',`第${r+1}行第${c+1}列`);input.addEventListener('input',()=>{data[r][c]=input.value===''?0:Number(input.value);update();});cell.append(input);root.append(cell); }
+    }
+    function matrixMarkup(matrix, changed=[]) { return `<div class="matrix-display" style="grid-template-columns:repeat(${n},minmax(42px,1fr))">${matrix.flatMap((row,r)=>row.map((value,c)=>`<span class="${changed.some(([x,y])=>x===r&&y===c)?'changed':''}">${fmt(value)}</span>`)).join('')}</div>`; }
+    function card(title,matrix,changed=[]) { return `<div class="compare-card"><h3>${title}</h3>${matrixMarkup(matrix,changed)}</div>`; }
+    function getVector() { const values=$('vector').value.split(',').map((x)=>Number(x.trim()));return values.length===n&&values.every(Number.isFinite)?values:null; }
+    function update() {
+      const op=$('operation').value, axis=$('axis').value, a=Number($('indexA').value), selectedB=Number($('indexB').value), b=selectedB===a?(a+1)%n:selectedB, factor=Number($('factor').value), before=core.determinantByColumns(data), changed=[];
+      if(selectedB===a) $('indexB').value=String(b);
+      $('vectorControls').hidden=op!=='additivity';
+      let cards='', relation='', details='';
+      if(op==='transpose') { const result=core.transpose(data);for(let r=0;r<n;r+=1)for(let c=0;c<n;c+=1)if(r!==c)changed.push([r,c]);cards=card('A',data,changed)+card('Aᵀ',result,changed);relation=`det(Aᵀ) = det(A) = ${fmt(before)}`;details='高亮的非对角元素交换行、列位置；行列式数值保持不变。'; }
+      if(op==='swap') { const result=core.swap(data,axis,a,b);for(let i=0;i<n;i+=1){if(axis==='row'){changed.push([a,i],[b,i]);}else{changed.push([i,a],[i,b]);}}const d=core.determinantByColumns(result);cards=card('操作前 A',data)+card(`交换第 ${a+1}、${b+1}${axis==='row'?'行':'列'}`,result,changed);relation=`det(操作后) = −det(A) = ${fmt(-before)}　（实际：${fmt(d)}）`;details='交换任意两行或两列，行列式变号。'; }
+      if(op==='scale') { const result=core.scale(data,axis,a,factor);for(let i=0;i<n;i+=1)changed.push(axis==='row'?[a,i]:[i,a]);const d=core.determinantByColumns(result);cards=card('操作前 A',data)+card(`第 ${a+1}${axis==='row'?'行':'列'}乘 ${fmt(factor)}`,result,changed);relation=`det(操作后) = ${fmt(factor)} · det(A) = ${fmt(factor*before)}　（实际：${fmt(d)}）`;details=`把该行（列）的公因子 ${fmt(factor)} 提出，det(操作后)= ${fmt(factor)} det(A)。`; }
+      if(op==='addMultiple') { const result=core.addMultiple(data,axis,a,b,factor);for(let i=0;i<n;i+=1)changed.push(axis==='row'?[a,i]:[i,a]);const d=core.determinantByColumns(result);cards=card('操作前 A',data)+card(`第 ${a+1}${axis==='row'?'行':'列'} + ${fmt(factor)} × 第 ${b+1}${axis==='row'?'行':'列'}`,result,changed);relation=`det(操作后) = det(A) = ${fmt(before)}　（实际：${fmt(d)}）`;details='由线性性展开，新增项含有两行（列）成比例，因此该项为零。'; }
+      if(op==='proportional') { const result=clone(data);for(let k=0;k<n;k+=1){if(axis==='row')result[a][k]=factor*result[b][k];else result[k][a]=factor*result[k][b];changed.push(axis==='row'?[a,k]:[k,a]);}const d=core.determinantByColumns(result);cards=card('操作前 A',data)+card('成比例矩阵',result,changed);relation=`两行（列）成比例，det = ${fmt(d)}（理论值 0）`;details=`第 ${a+1}${axis==='row'?'行':'列'} = ${fmt(factor)} × 第 ${b+1}${axis==='row'?'行':'列'}。相同行是系数为 1 的特例。`; }
+      if(op==='additivity') { const vector=getVector(); if(!vector){$('relation').textContent='请输入与矩阵阶数相同的有限数值向量。';$('comparison').replaceChildren();$('details').textContent='示例格式：1, 2, -1';$('detValue').textContent=fmt(before);return;}const first=clone(data),second=clone(data);for(let k=0;k<n;k+=1){if(axis==='row'){first[a][k]-=vector[k];second[a][k]=vector[k];changed.push([a,k]);}else{first[k][a]-=vector[k];second[k][a]=vector[k];changed.push([k,a]);}}const d1=core.determinantByColumns(first),d2=core.determinantByColumns(second);cards=card('A₁（原行列 − v）',first,changed)+card('A₂（该行列为 v）',second,changed);relation=`det(A) = det(A₁) + det(A₂) = ${fmt(d1)} + ${fmt(d2)} = ${fmt(d1+d2)}`;details=`将第 ${a+1}${axis==='row'?'行':'列'}拆成两部分：输入向量 v = (${vector.map(fmt).join(', ')})，其余部分为原向量减 v。`; }
+      $('detValue').textContent=fmt(before);$('relation').textContent=relation;$('comparison').innerHTML=cards;$('details').textContent=details;
+    }
+    $('order').addEventListener('change',(event)=>{const nextN=Number(event.target.value);const next=Array.from({length:nextN},(_,r)=>Array.from({length:nextN},(_,c)=>r<n&&c<n?data[r][c]:Number(r===c)));data=next;n=nextN;selectIndex($('indexA'),0);selectIndex($('indexB'),1);if($('vector').value.split(',').length!==n)$('vector').value=Array.from({length:n},(_,i)=>i+1).join(', ');renderInputMatrix();update();});
+    ['operation','axis','factor','vector'].forEach((id)=>$(id).addEventListener('input',update));['operation','axis','indexA','indexB'].forEach((id)=>$(id).addEventListener('change',update));
+    selectIndex($('indexA'),0);selectIndex($('indexB'),1);renderInputMatrix();update();
+  })();
+  </script>
+  <script src="../linear-algebra-layout.js"></script>
+</body>
+</html>

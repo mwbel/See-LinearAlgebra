@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>n阶行列式</title>
+  <link rel="stylesheet" href="../linear-algebra-responsive.css">
+  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]}};</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#243047;background:#f4f6fb}*{box-sizing:border-box}body{margin:0;background:#f4f6fb}.page-content{min-width:0;padding:16px}.container{max-width:1500px;margin:auto}.header h1{margin:0;color:#2738d9;font-size:clamp(1.5rem,3vw,2.2rem)}.header p{color:#63708a;margin:.4rem 0 1rem}.main-content{display:grid;grid-template-columns:minmax(300px,.95fr) minmax(340px,1.05fr);gap:16px;align-items:start}.theory-section,.visualization-section,.panel{background:#fff;border:1px solid #e0e6f0;border-radius:14px;padding:18px;box-shadow:0 5px 18px #263d6710;min-width:0}.section-title{font-size:1.2rem;margin:0 0 14px;border-bottom:3px solid #3949ff;padding-bottom:10px;color:#35415a}.control-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}.control-row label,.control-row strong{font-weight:650}.control-row select,.control-row input{font:inherit;border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#fff;max-width:100%}.matrix-scroll{overflow:auto;max-width:100%;padding:4px}.matrix{border-left:2px solid #59657a;border-right:2px solid #59657a;border-radius:3px;display:grid;gap:6px;padding:7px 9px;width:max-content;max-width:100%;margin:8px auto}.matrix-cell{min-width:54px;max-width:74px}.matrix-cell input{width:100%;padding:7px 3px;border:1px solid #d8deea;border-radius:6px;text-align:center;font:inherit;font-variant-numeric:tabular-nums}.matrix-cell input:focus{outline:2px solid #7180ff}.matrix-cell input.highlight{background:#fff0bb;border-color:#e29b00;box-shadow:0 0 0 2px #ffd76b}.matrix-display{display:grid;gap:5px;width:max-content;margin:auto}.matrix-display span{min-width:46px;padding:4px 7px;text-align:center;border-radius:5px;background:#f7f8fc;font-variant-numeric:tabular-nums}.matrix-display span.highlight{background:#ffebad;color:#704800;font-weight:700}.definition{padding:14px;margin:12px 0;border:1px solid #e2e8f0;border-radius:10px}.definition h3{margin:0 0 8px;color:#3442d6;font-size:1.05rem}.formula{padding:10px;background:#f7f8ff;border-radius:8px;overflow:auto;text-align:center}.muted{color:#64748b;font-size:.94rem}.result{padding:12px 14px;border-radius:10px;background:#edf4ff;margin-top:12px;line-height:1.7;overflow-wrap:anywhere}.term-box{border-left:4px solid #4555f5;padding:10px 12px;background:#f7f8ff;border-radius:7px;line-height:1.7;overflow-wrap:anywhere}.term-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.status{color:#245a45}.warning{color:#a33}.small{font-size:.88rem}@media(max-width:900px){.main-content{grid-template-columns:1fr}}@media(max-width:520px){.page-content{padding:8px}.container{padding:4px}.theory-section,.visualization-section,.panel{padding:13px}.term-grid{grid-template-columns:1fr}.matrix-cell{min-width:46px}.matrix-cell input{font-size:.92rem}}
+  </style>
+</head>
+<body>
+  <main class="page-content">
+    <div class="container">
+      <header class="header"><h1>n阶行列式</h1><p>从排列项理解行展开、列展开与双排列定义</p></header>
+      <div class="main-content">
+        <section class="theory-section">
+          <h2 class="section-title">编辑矩阵</h2>
+          <div class="control-row"><label for="order">矩阵阶数</label><select id="order"><option>2</option><option selected>3</option><option>4</option><option>5</option></select><span class="muted">调阶时保留左上角已有元素</span></div>
+          <div class="matrix-scroll"><div id="matrix" class="matrix" aria-label="可编辑矩阵"></div></div>
+          <div class="result"><strong>行列式：</strong><span id="detValue" aria-live="polite"></span></div>
+          <div class="control-row"><label for="definition">展开方式</label><select id="definition"><option value="columns">按列排列展开</option><option value="rows">按行排列展开</option><option value="double">双排列平均式</option></select></div>
+          <div id="definitionHelp" class="muted"></div>
+          <div id="permutationControls" class="control-row"></div>
+          <div id="selectedTerm" class="term-box" aria-live="polite"></div>
+        </section>
+        <section class="visualization-section">
+          <h2 class="section-title">三种定义的交换式可视化</h2>
+          <article class="definition"><h3>定义一：按列标排列</h3><div class="formula">\(\det(A)=\sum_{\sigma\in S_n}\operatorname{sgn}(\sigma)\prod_{i=1}^{n}a_{i,\sigma(i)}\)</div><p class="muted">每一项从每行取一个元素，列标恰好构成一个排列。选择排列可查看该项使用的元素。</p></article>
+          <article class="definition"><h3>定义二：按行标排列</h3><div class="formula">\(\det(A)=\sum_{\sigma\in S_n}\operatorname{sgn}(\sigma)\prod_{j=1}^{n}a_{\sigma(j),j}\)</div><p class="muted">每一项从每列取一个元素，行标恰好构成一个排列。它与定义一逐项对应转置矩阵。</p></article>
+          <article class="definition"><h3>定义三：双排列平均式</h3><div class="formula">\(\det(A)=\frac1{n!}\sum_{\sigma,\tau\in S_n}\operatorname{sgn}(\sigma)\operatorname{sgn}(\tau)\prod_{k=1}^{n}a_{\sigma(k),\tau(k)}\)</div><p class="muted">共计算 \((n!)^2\) 个排列对的有符号乘积，再除以 \(n!\)。下方只列出当前选择的排列对。</p></article>
+          <div id="allResults" class="result" aria-live="polite"></div>
+          <div id="matrixPreview" class="matrix-scroll" aria-label="排列项高亮矩阵"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script src="../linear-algebra-determinant-core.js"></script>
+  <script>
+  (() => {
+    const core = window.LinearAlgebraDeterminantCore;
+    const $ = (id) => document.getElementById(id);
+    let n = 3;
+    let data = [[1,2,3],[0,1,4],[5,6,0]];
+    let chosenColumn = 0, chosenRow = 0;
+    const fmt = (value) => Number(value.toPrecision(7)).toString();
+    const permutations = () => core.enumeratePermutations(n);
+    function readMatrix() {
+      document.querySelectorAll('#matrix input').forEach((input) => { data[Number(input.dataset.row)][Number(input.dataset.column)] = Number(input.value); });
+    }
+    function createSelect(id, values, selected) {
+      const select = document.createElement('select'); select.id = id;
+      values.forEach((p, index) => { const option = document.createElement('option'); option.value = index; option.textContent = `(${p.indices.map((x) => x + 1).join(',')})  符号 ${p.sign > 0 ? '+' : '−'}1`; select.append(option); });
+      select.value = String(selected); return select;
+    }
+    function cellSetFor(mode, p, q) {
+      if (mode === 'columns') return p.indices.map((column, row) => [row, column]);
+      if (mode === 'rows') return p.indices.map((row, column) => [row, column]);
+      return p.indices.map((row, k) => [row, q.indices[k]]);
+    }
+    function renderMatrix(highlights = []) {
+      const root = $('matrix'); root.style.gridTemplateColumns = `repeat(${n}, minmax(44px, 1fr))`; root.replaceChildren();
+      for (let row = 0; row < n; row += 1) for (let column = 0; column < n; column += 1) {
+        const cell = document.createElement('div'); cell.className = 'matrix-cell';
+        const input = document.createElement('input'); input.type = 'number'; input.step = 'any'; input.value = data[row][column]; input.setAttribute('aria-label', `第${row+1}行第${column+1}列`); input.dataset.row = row; input.dataset.column = column;
+        if (highlights.some(([r,c]) => r === row && c === column)) input.classList.add('highlight');
+        input.addEventListener('input', () => { data[row][column] = input.value === '' ? 0 : Number(input.value); update(false); });
+        cell.append(input); root.append(cell);
+      }
+    }
+    function update(refreshInputs = true) {
+      const mode = $('definition').value; const ps = permutations();
+      const p = ps[chosenColumn] || ps[0], q = ps[chosenRow] || ps[0];
+      const highlights = cellSetFor(mode, p, q);
+      if (refreshInputs) renderMatrix(highlights);
+      else document.querySelectorAll('#matrix input').forEach((input) => input.classList.toggle('highlight', highlights.some(([r,c]) => r === Number(input.dataset.row) && c === Number(input.dataset.column))));
+      const det = core.determinantByColumns(data);
+      $('detValue').textContent = fmt(det);
+      $('allResults').innerHTML = `<strong>数值核对</strong><br>按列展开：${fmt(core.determinantByColumns(data))}　·　按行展开：${fmt(core.determinantByRows(data))}　·　双排列平均：${fmt(core.determinantByDoublePermutationAverage(data))}<br><span class="status">三种定义数值一致。</span>`;
+      const controls = $('permutationControls'); controls.replaceChildren();
+      if (mode === 'double') {
+        controls.append(document.createTextNode('行排列 σ '), createSelect('permA', ps, chosenColumn), document.createTextNode('列排列 τ '), createSelect('permB', ps, chosenRow));
+        $('permA').addEventListener('change', (event) => { chosenColumn = Number(event.target.value); update(); });
+        $('permB').addEventListener('change', (event) => { chosenRow = Number(event.target.value); update(); });
+      } else {
+        controls.append(document.createTextNode('选择排列 '), createSelect('permA', ps, chosenColumn));
+        $('permA').addEventListener('change', (event) => { chosenColumn = Number(event.target.value); update(); });
+      }
+      const cells = cellSetFor(mode, p, q); let product = 1; cells.forEach(([r,c]) => product *= data[r][c]);
+      const sign = mode === 'double' ? p.sign * q.sign : p.sign;
+      const factors = cells.map(([r,c]) => `a<sub>${r+1}${c+1}</sub>=${fmt(data[r][c])}`).join(' × ');
+      const term = mode === 'double' ? `选中项：(${p.sign})(${q.sign}) × (${factors}) = ${fmt(sign * product)}；总和包含 ${(ps.length ** 2)} 项，除以 ${ps.length} 得 ${fmt(det)}。` : `选中项：${sign > 0 ? '+' : '−'}(${factors}) = ${fmt(sign * product)}；排列逆序数 ${p.inversions}，符号为 ${sign > 0 ? '+1' : '−1'}。`;
+      $('selectedTerm').innerHTML = term;
+      $('definitionHelp').textContent = mode === 'columns' ? '高亮位置：第 i 行、第 σ(i) 列。' : mode === 'rows' ? '高亮位置：第 σ(j) 行、第 j 列。' : '高亮位置：aσ(k),τ(k)，同时显示两组排列的符号。';
+      const preview = $('matrixPreview'); preview.innerHTML = `<div class="matrix-display" style="grid-template-columns:repeat(${n},minmax(46px,1fr))">${data.flatMap((row,r)=>row.map((value,c)=>`<span class="${cells.some(([hr,hc])=>hr===r&&hc===c)?'highlight':''}">${fmt(value)}</span>`)).join('')}</div>`;
+      if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise();
+    }
+    $('order').addEventListener('change', (event) => {
+      const nextN = Number(event.target.value); readMatrix(); const next = Array.from({length:nextN},(_,r)=>Array.from({length:nextN},(_,c)=>r<n&&c<n?data[r][c]:Number(r===c)));
+      data = next; n = nextN; chosenColumn = 0; chosenRow = 0; update();
+    });
+    $('definition').addEventListener('change', update);
+    update();
+  })();
+  </script>
+  <script src="../linear-algebra-layout.js"></script>
+</body>
+</html>

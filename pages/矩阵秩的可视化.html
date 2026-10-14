@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>矩阵秩的可视化</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      },
+      startup: {
+        ready: () => {
+          console.log('MathJax is loaded, but not yet initialized');
+          MathJax.startup.defaultReady();
+          MathJax.startup.promise.then(() => {
+            console.log('MathJax initial typesetting complete');
+          });
+        }
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      --bg: #f8f8ff; --panel: #ffffff; --accent: #3747ff; --accent-2: #6b6ee8; --text: #202124; --muted: #5f6368; --border: rgba(0,0,0,0.1);
+    }
+    body { margin:0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .page[data-autolatex="true"] { display:flex; flex-direction:column; min-height:100vh; }
+    header.page-header { border-bottom: 1px solid var(--border); background: #ffffff; }
+    .header-inner { max-width: 1200px; margin: 0 auto; padding: 20px 16px; display:flex; align-items:baseline; gap:16px; }
+    .title { font-size:20px; font-weight:600; color: var(--text); }
+    .subtitle { font-size:14px; color: var(--muted); }
+    .content { max-width:1200px; margin:0 auto; padding:20px 16px; display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+    .card { background: var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .card h3 { margin:0 0 12px; font-size:16px; color: var(--accent); }
+    .section-title { font-size:14px; color: var(--muted); margin: 8px 0 12px; }
+
+    .grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+    .control { display:flex; flex-direction:column; gap:6px; background:#f0f2f5; border:1px solid var(--border); border-radius:8px; padding:8px; }
+    .control label { font-size:12px; color: var(--muted); }
+    .control input { background:#ffffff; color: var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-size:13px; }
+    .controls-row { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom: 8px; }
+    .btn-row { display:flex; gap:8px; }
+    button { background: var(--accent); color: #ffffff; border:none; border-radius:6px; padding:6px 10px; font-weight:600; cursor:pointer; }
+
+    .mathjax-block { background:#f0f2f5; border:1px dashed var(--border); border-radius:10px; padding:10px 12px; margin:10px 0; }
+    .formula { color: var(--text); text-align:left; line-height:1.6; }
+    mjx-container { overflow-x:auto; overflow-y:hidden; white-space:normal; }
+
+    .viz { height: 480px; }
+    .legend { font-size:12px; color: var(--muted); margin-top:8px; }
+    .steps { font-size: 13px; color: var(--muted); }
+    /* —— 统一线性代数模块的浅色风格与侧栏导航 —— */
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f8ff; min-height: 100vh; color: #333; display: flex; }
+    .sidebar { width: 280px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); box-shadow: 2px 0 15px rgba(0,0,0,0.1); padding: 20px; position: fixed; height: 100vh; overflow-y: auto; z-index: 1000; }
+    .sidebar-title { font-size: 1.4em; font-weight: 700; color: #2d3748; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+    .nav-item { display: block; padding: 12px 15px; margin: 8px 0; color: #4a5568; text-decoration: none; border-radius: 10px; transition: all 0.3s; font-weight: 500; border-left: 4px solid transparent; }
+    .nav-item:hover { background: rgba(55, 71, 255, 0.08); color: #3747ff; transform: translateX(5px); border-left-color: #3747ff; }
+    .nav-item.active { background: rgba(55, 71, 255, 0.12); color: #3747ff; border-left-color: #3747ff; }
+    .page-content { margin-left: 280px; flex: 1; padding: 20px; }
+    .card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: none; }
+    .card h3 { color: #4a5568; font-size: 18px; }
+    .section-title { font-size: 1.5em; color: #4a5568; margin-bottom: 12px; border-bottom: 3px solid #3747ff; padding-bottom: 10px; }
+    .content { gap: 30px; }
+    .mathjax-block { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 10px; padding: 15px; }
+    .formula { color: #333; }
+    header.page-header { display: none; }
+    .matrix-preview { display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; margin-top:10px; }
+    .matrix-cell { background:#ffffff; border:1px solid var(--border); border-radius:6px; padding:8px; text-align:center; font-size:13px; color: var(--text); }
+    .result-display { background: #3747ff; color: white; padding: 15px; border-radius: 10px; margin: 15px 0; text-align: center; }
+    .rank-steps { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin: 10px 0; }
+    .rank-step { margin: 8px 0; padding: 8px; background: white; border-radius: 5px; border-left: 4px solid #3747ff; }
+    .example-buttons { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+    .example-btn { background: #3747ff; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+    .example-btn:hover { background: #5a67d8; }
+  </style>
+    <link rel="stylesheet" href="../linear-algebra-responsive.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-title">线性代数模块</div>
+    <a href="linear-algebra-module.html" class="nav-item">模块概览</a>
+    <a href="二阶行列式可视化.html" class="nav-item">二阶行列式</a>
+    <a href="三阶行列式可视化.html" class="nav-item">三阶行列式</a>
+    <a href="矩阵运算可视化.html" class="nav-item">矩阵运算</a>
+    <a href="向量空间可视化.html" class="nav-item">向量空间</a>
+    <a href="线性变换可视化.html" class="nav-item">线性变换</a>
+    <a href="矩阵高斯消元法可视化.html" class="nav-item">高斯消元法</a>
+    <a href="矩阵秩的可视化.html" class="nav-item active">矩阵秩</a>
+    <a href="特征值分解可视化.html" class="nav-item">特征值分解</a>
+    <a href="旋转矩阵可视化.html" class="nav-item">旋转矩阵</a>
+    <a href="正交分解可视化.html" class="nav-item">正交分解</a>
+    <a href="../index.html">返回 "线性代数可视化世界"首页</a>
+<a href="../../../index.html" class="nav-item">返回 "万物可视化"首页</a>
+  </div>
+  <div class="page-content">
+   <div class="page" data-autolatex="true">
+     <main class="content">
+      <!-- 左栏：定义与控制 -->
+      <section class="card">
+        <h3>矩阵秩的定义与计算</h3>
+        <div class="mathjax-block">
+          <div class="formula">$$ \text{rank}(A) = \max\{r : \text{存在} r \text{阶子式不为零}\} $$</div>
+        </div>
+        <div class="mathjax-block">
+          <div class="formula">$$ \text{矩阵的秩} = \text{最高阶非零子式的阶数} $$</div>
+        </div>
+        <div class="mathjax-block">
+          <div class="formula">$$ \text{矩阵的秩} = \text{线性无关行（列）向量的最大数目} $$</div>
+        </div>
+        <div class="mathjax-block">
+          <div class="formula">$$ \text{秩} = \text{行阶梯形中非零行的数目} $$</div>
+        </div>
+        <div class="mathjax-block">
+          <div class="formula">$$ m \times n \text{矩阵} A: \quad 0 \leq \text{rank}(A) \leq \min(m,n) $$</div>
+        </div>
+
+        <div class="section-title">示例矩阵（3×3）</div>
+        <div class="example-buttons">
+          <button class="example-btn" onclick="loadExample('fullrank')">满秩矩阵</button>
+          <button class="example-btn" onclick="loadExample('rank2')">秩为2</button>
+          <button class="example-btn" onclick="loadExample('rank1')">秩为1</button>
+          <button class="example-btn" onclick="loadExample('zero')">零矩阵</button>
+        </div>
+
+        <div class="controls-row">
+          <div class="control"><label>a11</label><input id="a11" type="number" step="0.1" value="2"></div>
+          <div class="control"><label>a12</label><input id="a12" type="number" step="0.1" value="1"></div>
+          <div class="control"><label>a13</label><input id="a13" type="number" step="0.1" value="3"></div>
+        </div>
+        <div class="controls-row">
+          <div class="control"><label>a21</label><input id="a21" type="number" step="0.1" value="4"></div>
+          <div class="control"><label>a22</label><input id="a22" type="number" step="0.1" value="2"></div>
+          <div class="control"><label>a23</label><input id="a23" type="number" step="0.1" value="6"></div>
+        </div>
+        <div class="controls-row">
+          <div class="control"><label>a31</label><input id="a31" type="number" step="0.1" value="1"></div>
+          <div class="control"><label>a32</label><input id="a32" type="number" step="0.1" value="0"></div>
+          <div class="control"><label>a33</label><input id="a33" type="number" step="0.1" value="1"></div>
+        </div>
+        <div class="btn-row">
+          <button id="calculate-rank">计算矩阵秩</button>
+          <button id="reset">重置矩阵</button>
+        </div>
+
+        <div class="result-display">
+          <h3>矩阵的秩 = <span id="rank-value">2</span></h3>
+          <p><span id="rank-explanation">矩阵中存在2个线性无关的行向量</span></p>
+        </div>
+
+        <div class="section-title">子式计算（验证秩）</div>
+        <div id="minors-display">
+          <div class="mathjax-block">
+            <div class="formula">三阶子式（行列式）= <span id="det3">0.0000</span></div>
+          </div>
+          <div class="mathjax-block">
+            <div class="formula">二阶子式最大值 = <span id="det2max">0.0000</span></div>
+          </div>
+          <div class="mathjax-block">
+            <div class="formula">一阶子式最大值 = <span id="det1max">0.0000</span></div>
+          </div>
+        </div>
+
+        <div class="section-title">计算步骤</div>
+        <div id="rank-steps" class="rank-steps"></div>
+      </section>
+
+      <!-- 右栏：几何可视化 -->
+      <section class="card">
+        <h3>行向量的几何意义</h3>
+        <div id="vector-plot" class="viz"></div>
+        <div class="legend">显示矩阵的行向量在三维空间中的关系，线性相关的向量会共线或共面</div>
+
+        <div class="section-title">行阶梯形矩阵</div>
+        <div id="echelon-matrix" class="matrix-preview"></div>
+
+        <div class="section-title">矩阵热力图</div>
+        <div id="heat-plot" class="viz" style="height: 300px;"></div>
+        <div class="legend">颜色表示矩阵元素的数值大小</div>
+      </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+
+    function matrixFromInputs() {
+      const ids = ['a11','a12','a13','a21','a22','a23','a31','a32','a33'];
+      const vals = ids.map(id => parseFloat(document.getElementById(id).value) || 0);
+      return [vals.slice(0,3), vals.slice(3,6), vals.slice(6,9)];
+    }
+
+    function clone(M){ return M.map(row => row.slice()); }
+
+    // 计算二阶行列式
+    function det2x2(mat) {
+      return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0];
+    }
+
+    // 计算三阶行列式
+    function det3x3(mat) {
+      return mat[0][0] * (mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1]) -
+             mat[0][1] * (mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0]) +
+             mat[0][2] * (mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0]);
+    }
+
+    // 获取所有二阶子式
+    function getAll2x2Minors(M) {
+      const minors = [];
+      // 所有可能的2x2子矩阵
+      for (let i = 0; i <= 1; i++) {
+        for (let j = 0; j <= 1; j++) {
+          const submatrix = [
+            [M[i][j], M[i][j+1]],
+            [M[i+1][j], M[i+1][j+1]]
+          ];
+          minors.push({
+            value: det2x2(submatrix),
+            position: `行${i+1},${i+2} × 列${j+1},${j+2}`,
+            submatrix: submatrix
+          });
+        }
+      }
+
+      // 跨行的子矩阵 (行0,2)
+      for (let j = 0; j <= 1; j++) {
+        const submatrix = [
+          [M[0][j], M[0][j+1]],
+          [M[2][j], M[2][j+1]]
+        ];
+        minors.push({
+          value: det2x2(submatrix),
+          position: `行1,3 × 列${j+1},${j+2}`,
+          submatrix: submatrix
+        });
+      }
+
+      // 跨列的子矩阵 (列0,2)
+      for (let i = 0; i <= 1; i++) {
+        const submatrix = [
+          [M[i][0], M[i][2]],
+          [M[i+1][0], M[i+1][2]]
+        ];
+        minors.push({
+          value: det2x2(submatrix),
+          position: `行${i+1},${i+2} × 列1,3`,
+          submatrix: submatrix
+        });
+      }
+
+      // 行0,2 × 列0,2
+      const submatrix = [
+        [M[0][0], M[0][2]],
+        [M[2][0], M[2][2]]
+      ];
+      minors.push({
+        value: det2x2(submatrix),
+        position: `行1,3 × 列1,3`,
+        submatrix: submatrix
+      });
+
+      return minors;
+    }
+
+    // 获取一阶子式（所有元素）
+    function getAll1x1Minors(M) {
+      const minors = [];
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          minors.push({
+            value: M[i][j],
+            position: `第${i+1}行第${j+1}列`
+          });
+        }
+      }
+      return minors;
+    }
+
+    // 高斯消元法计算行阶梯形
+    function rowEchelonForm(M) {
+      const A = clone(M);
+      const m = A.length;
+      const n = A[0].length;
+      let rank = 0;
+
+      for (let col = 0; col < n && rank < m; col++) {
+        // 寻找主元
+        let pivotRow = rank;
+        for (let i = rank + 1; i < m; i++) {
+          if (Math.abs(A[i][col]) > Math.abs(A[pivotRow][col])) {
+            pivotRow = i;
+          }
+        }
+
+        if (Math.abs(A[pivotRow][col]) < 1e-10) {
+          continue; // 这一列全为零，跳过
+        }
+
+        // 交换行
+        if (pivotRow !== rank) {
+          [A[rank], A[pivotRow]] = [A[pivotRow], A[rank]];
+        }
+
+        // 归一化主元行
+        const pivot = A[rank][col];
+        for (let j = col; j < n; j++) {
+          A[rank][j] /= pivot;
+        }
+
+        // 消去下方行
+        for (let i = rank + 1; i < m; i++) {
+          const factor = A[i][col];
+          for (let j = col; j < n; j++) {
+            A[i][j] -= factor * A[rank][j];
+          }
+        }
+
+        rank++;
+      }
+
+      return { matrix: A, rank: rank };
+    }
+
+    // 计算矩阵的秩
+    function calculateRank(M) {
+      const result = rowEchelonForm(M);
+      return result.rank;
+    }
+
+    // 生成计算步骤
+    function generateRankSteps(M) {
+      const steps = [];
+      const A = clone(M);
+
+      steps.push({
+        description: '初始矩阵',
+        matrix: clone(A)
+      });
+
+      // 简化的高斯消元过程展示
+      let currentRow = 0;
+      for (let col = 0; col < 3 && currentRow < 3; col++) {
+        // 寻找主元
+        let pivotRow = currentRow;
+        for (let i = currentRow + 1; i < 3; i++) {
+          if (Math.abs(A[i][col]) > Math.abs(A[pivotRow][col])) {
+            pivotRow = i;
+          }
+        }
+
+        if (Math.abs(A[pivotRow][col]) < 1e-10) continue;
+
+        // 交换行
+        if (pivotRow !== currentRow) {
+          [A[currentRow], A[pivotRow]] = [A[pivotRow], A[currentRow]];
+          steps.push({
+            description: `交换第 ${currentRow + 1} 行和第 ${pivotRow + 1} 行`,
+            matrix: clone(A)
+          });
+        }
+
+        // 归一化
+        const pivot = A[currentRow][col];
+        if (Math.abs(pivot - 1) > 1e-10) {
+          for (let j = col; j < 3; j++) {
+            A[currentRow][j] /= pivot;
+          }
+          steps.push({
+            description: `第 ${currentRow + 1} 行除以 ${pivot.toFixed(2)}`,
+            matrix: clone(A)
+          });
+        }
+
+        // 消元
+        for (let i = currentRow + 1; i < 3; i++) {
+          const factor = A[i][col];
+          if (Math.abs(factor) > 1e-10) {
+            for (let j = col; j < 3; j++) {
+              A[i][j] -= factor * A[currentRow][j];
+            }
+            steps.push({
+              description: `第 ${i + 1} 行减去 ${factor.toFixed(2)} 倍第 ${currentRow + 1} 行`,
+              matrix: clone(A)
+            });
+          }
+        }
+
+        currentRow++;
+      }
+
+      const echelonResult = rowEchelonForm(M);
+      steps.push({
+        description: '最终行阶梯形矩阵',
+        matrix: echelonResult.matrix
+      });
+
+      return steps;
+    }
+
+    // 渲染行向量可视化
+    function renderVectorPlot(M) {
+      const rowVectors = [
+        { x: [0, M[0][0]], y: [0, M[0][1]], z: [0, M[0][2]], name: '第1行', color: '#e53e3e' },
+        { x: [0, M[1][0]], y: [0, M[1][1]], z: [0, M[1][2]], name: '第2行', color: '#3182ce' },
+        { x: [0, M[2][0]], y: [0, M[2][1]], z: [0, M[2][2]], name: '第3行', color: '#38a169' }
+      ];
+
+      const traces = rowVectors.map(vector => ({
+        x: vector.x,
+        y: vector.y,
+        z: vector.z,
+        type: 'scatter3d',
+        mode: 'lines+markers',
+        line: { color: vector.color, width: 6 },
+        marker: { size: 8, color: vector.color },
+        name: vector.name
+      }));
+
+      const layout = {
+        title: '矩阵行向量的三维表示',
+        scene: {
+          xaxis: { title: 'X', range: [-5, 5] },
+          yaxis: { title: 'Y', range: [-5, 5] },
+          zaxis: { title: 'Z', range: [-5, 5] }
+        },
+        margin: { l: 0, r: 0, t: 30, b: 0 },
+        showlegend: true
+      };
+
+      Plotly.react('vector-plot', traces, layout, { displayModeBar: false });
+    }
+
+    // 渲染矩阵热力图
+    function renderHeatMap(M) {
+      const z = M.map(row => row.map(v => +v.toFixed(3)));
+      const data = [{
+        z,
+        type: 'heatmap',
+        colorscale: 'RdBu',
+        zmid: 0,
+        colorbar: { title: '数值' }
+      }];
+
+      const layout = {
+        title: '矩阵元素热力图',
+        xaxis: { title: '列' },
+        yaxis: { title: '行' },
+        margin: { l: 50, r: 50, t: 50, b: 50 }
+      };
+
+      Plotly.react('heat-plot', data, layout, { displayModeBar: false });
+    }
+
+    // 渲染矩阵预览
+    function renderMatrixPreview(mat, containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.style.display = 'grid';
+      container.style.gridTemplateColumns = `repeat(${mat[0].length}, 1fr)`;
+      container.innerHTML = mat.flat().map(v => `<div class="matrix-cell">${(+v).toFixed(2)}</div>`).join('');
+    }
+
+    // 更新秩的解释
+    function updateRankExplanation(rank) {
+      const explanations = {
+        0: '零矩阵，没有线性无关的行向量',
+        1: '所有行向量都共线（在一条直线上）',
+        2: '存在2个线性无关的行向量，第3个行向量可以表示为前两个的线性组合',
+        3: '满秩矩阵，3个行向量都线性无关，构成三维空间的一组基'
+      };
+
+      document.getElementById('rank-explanation').textContent = explanations[rank] || '未知秩';
+    }
+
+    // 显示计算步骤
+    function displayCalculationSteps(M) {
+      const steps = generateRankSteps(M);
+      const stepsContainer = document.getElementById('rank-steps');
+
+      stepsContainer.innerHTML = steps.map((step, index) => `
+        <div class="rank-step">
+          <strong>步骤 ${index + 1}:</strong> ${step.description}
+        </div>
+      `).join('');
+    }
+
+    // 更新子式显示
+    function updateMinorsDisplay(M) {
+      const det3 = det3x3(M);
+      const minors2 = getAll2x2Minors(M);
+      const minors1 = getAll1x1Minors(M);
+
+      const maxDet2 = Math.max(...minors2.map(m => Math.abs(m.value)));
+      const maxDet1 = Math.max(...minors1.map(m => Math.abs(m.value)));
+
+      document.getElementById('det3').textContent = det3.toFixed(4);
+      document.getElementById('det2max').textContent = maxDet2.toFixed(4);
+      document.getElementById('det1max').textContent = maxDet1.toFixed(4);
+    }
+
+    // 主更新函数
+    function update() {
+      const M = matrixFromInputs();
+      const rank = calculateRank(M);
+      const echelonResult = rowEchelonForm(M);
+
+      // 更新秩的显示
+      document.getElementById('rank-value').textContent = rank;
+      updateRankExplanation(rank);
+
+      // 更新子式显示
+      updateMinorsDisplay(M);
+
+      // 更新可视化
+      renderVectorPlot(M);
+      renderHeatMap(M);
+      renderMatrixPreview(echelonResult.matrix, 'echelon-matrix');
+
+      // 更新计算步骤
+      displayCalculationSteps(M);
+    }
+
+    // 加载示例
+    function loadExample(type) {
+      const examples = {
+        fullrank: [
+          [1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1]
+        ],
+        rank2: [
+          [2, 1, 3],
+          [4, 2, 6],
+          [1, 0, 1]
+        ],
+        rank1: [
+          [1, 2, 3],
+          [2, 4, 6],
+          [3, 6, 9]
+        ],
+        zero: [
+          [0, 0, 0],
+          [0, 0, 0],
+          [0, 0, 0]
+        ]
+      };
+
+      const matrix = examples[type];
+      if (matrix) {
+        const ids = ['a11','a12','a13','a21','a22','a23','a31','a32','a33'];
+        ids.forEach((id, index) => {
+          document.getElementById(id).value = matrix[Math.floor(index/3)][index%3];
+        });
+        update();
+      }
+    }
+
+    // 事件监听器
+    document.getElementById('calculate-rank').addEventListener('click', update);
+
+    document.getElementById('reset').addEventListener('click', () => {
+      const defaults = { a11:2,a12:1,a13:3,a21:4,a22:2,a23:6,a31:1,a32:0,a33:1 };
+      Object.entries(defaults).forEach(([id,val])=>{ document.getElementById(id).value = val; });
+      update();
+    });
+
+    // 为所有输入框添加事件监听
+    ['a11','a12','a13','a21','a22','a23','a31','a32','a33'].forEach(id => {
+      document.getElementById(id).addEventListener('input', update);
+    });
+
+    // 将loadExample函数暴露到全局作用域
+    window.loadExample = loadExample;
+
+    // 等待MathJax加载完成后进行初始渲染
+    if (window.MathJax) {
+      MathJax.startup.promise.then(() => {
+        console.log('MathJax loaded, initializing...');
+        update();
+      }).catch(err => {
+        console.log('MathJax failed to load, using fallback...');
+        update();
+      });
+    } else {
+      // 如果MathJax没有加载，延迟后进行初始化
+      setTimeout(() => {
+        console.log('MathJax not available, using fallback initialization...');
+        update();
+      }, 1000);
+    }
+
+    // 也添加备用初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(() => {
+        if (typeof update === 'function') {
+          update();
+        }
+      }, 500);
+    });
+  </script>
+    <script src="../linear-algebra-layout.js"></script>
+</body>
+</html>

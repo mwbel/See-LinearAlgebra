@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>向量组的秩 - 交互式可视化</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.2.1/math.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --basis-color: #f0f9ff;
+            --basis-border: #bae6fd;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            gap: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .control-panel {
+            width: 350px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .viz-container {
+            flex: 1;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.25rem;
+        }
+
+        h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            color: #64748b;
+        }
+
+        .vector-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .vector-item {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .vector-item.is-basis {
+            background: var(--basis-color);
+            border-color: var(--basis-border);
+        }
+
+        .vector-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .vector-inputs {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .basis-badge {
+            font-size: 0.7rem;
+            background: #0ea5e9;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+
+        .linear-relation {
+            font-size: 0.8rem;
+            color: #64748b;
+            padding-top: 4px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .show-decomp-btn {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+        }
+
+        .show-decomp-btn:hover {
+            background: #e2e8f0;
+        }
+
+        .show-decomp-btn.active {
+            background: #cbd5e1;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button.secondary {
+            background: #e2e8f0;
+            color: var(--text);
+        }
+
+        button.secondary:hover {
+            background: #cbd5e1;
+        }
+
+        button.danger {
+            background: #ef4444;
+            color: white;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+
+        .result-card {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .rank-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .explanation {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #475569;
+        }
+
+        #plot {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="control-panel">
+        <div>
+            <h2>向量组配置 (3D)</h2>
+            <p style="font-size: 0.9rem; color: #64748b;">极大无关组与线性表示可视化。</p>
+        </div>
+
+        <div class="vector-list" id="vectorList">
+            <!-- Vectors will be added here -->
+        </div>
+
+        <button onclick="addVector()">+ 添加向量</button>
+
+        <div class="result-card">
+            <h3>计算结果</h3>
+            <div class="rank-display">秩 (Rank) = <span id="rankValue">0</span></div>
+            <div id="independenceStatus" style="text-align: center; font-weight: 500; margin-bottom: 8px;"></div>
+            <div class="explanation" id="explanationText">
+                当前没有向量。
+            </div>
+        </div>
+
+        <div>
+            <h3>操作</h3>
+            <div style="display: flex; gap: 10px;">
+                <button class="secondary" onclick="resetVectors()" style="flex: 1;">重置</button>
+                <button class="secondary" onclick="randomizeVectors()" style="flex: 1;">随机</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="viz-container">
+        <div id="plot"></div>
+    </div>
+
+    <script>
+        // State
+        let vectors = [
+            { x: 1, y: 0, z: 0, color: '#ef4444' },
+            { x: 0, y: 1, z: 0, color: '#22c55e' },
+            { x: 1, y: 1, z: 0, color: '#3b82f6' } // v3 = v1 + v2
+        ];
+
+        let activeDecompositionIndex = -1; // Index of vector being decomposed
+        let calculationResult = null; // Store rank, basis indices, coefficients
+
+        const colors = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+        // Initialization
+        function init() {
+            // Initial calculation
+            calculationResult = calculateBasisAndRank();
+            renderVectorInputs();
+            updateVisualization();
+        }
+
+        // DOM Rendering
+        function renderVectorInputs() {
+            const list = document.getElementById('vectorList');
+            list.innerHTML = '';
+
+            vectors.forEach((v, index) => {
+                const isBasis = calculationResult.basisIndices.includes(index);
+                const item = document.createElement('div');
+                item.className = `vector-item ${isBasis ? 'is-basis' : ''}`;
+
+                let relationHTML = '';
+                if (!isBasis) {
+                    // Find coefficients for this vector
+                    // The non-basis vector index in the 'coefficients' map might be tricky if not mapped directly
+                    // We'll recompute simple relation string here for display
+                    const coeffs = calculationResult.relations[index];
+                    let formula = '';
+                    if (coeffs) {
+                        formula = Object.entries(coeffs).map(([basisIdx, c]) => {
+                            const val = parseFloat(c.toFixed(2));
+                            if (Math.abs(val) < 0.001) return null;
+                            return `${val}v${parseInt(basisIdx) + 1}`;
+                        }).filter(x => x).join(' + ').replace(/\+ -/g, '- ');
+                        if (formula === '') formula = '0';
+                        formula = `v${index + 1} = ${formula}`;
+                    }
+
+                    relationHTML = `
+                    <div class="linear-relation">
+                        <span>${formula}</span>
+                        <button class="show-decomp-btn ${activeDecompositionIndex === index ? 'active' : ''}" 
+                                onclick="toggleDecomposition(${index})">
+                            ${activeDecompositionIndex === index ? '隐藏分解' : '查看分解'}
+                        </button>
+                    </div>
+                `;
+                }
+
+                item.innerHTML = `
+                <div class="vector-row">
+                    <div class="color-dot" style="background: ${v.color}"></div>
+                    <div style="font-weight: bold; font-size: 0.9rem;">v${index + 1}</div>
+                    ${isBasis ? '<span class="basis-badge">基</span>' : ''}
+                    <div class="vector-inputs">
+                        <input type="number" value="${v.x}" onchange="updateVector(${index}, 'x', this.value)" step="0.5">
+                        <input type="number" value="${v.y}" onchange="updateVector(${index}, 'y', this.value)" step="0.5">
+                        <input type="number" value="${v.z}" onchange="updateVector(${index}, 'z', this.value)" step="0.5">
+                    </div>
+                    <button class="danger" onclick="removeVector(${index})" ${vectors.length <= 1 ? 'disabled' : ''}>×</button>
+                </div>
+                ${relationHTML}
+            `;
+                list.appendChild(item);
+            });
+        }
+
+        // Logic Actions
+        function addVector() {
+            if (vectors.length >= 6) return alert("最多支持6个向量");
+            vectors.push({
+                x: Math.round(Math.random() * 4 - 2),
+                y: Math.round(Math.random() * 4 - 2),
+                z: Math.round(Math.random() * 4 - 2),
+                color: colors[vectors.length % colors.length]
+            });
+            refresh();
+        }
+
+        function removeVector(index) {
+            if (vectors.length <= 1) return;
+            vectors.splice(index, 1);
+            if (activeDecompositionIndex === index) activeDecompositionIndex = -1;
+            if (activeDecompositionIndex > index) activeDecompositionIndex--;
+            refresh();
+        }
+
+        function updateVector(index, axis, value) {
+            vectors[index][axis] = parseFloat(value) || 0;
+            refresh();
+        }
+
+        function resetVectors() {
+            vectors = [
+                { x: 1, y: 0, z: 0, color: '#ef4444' },
+                { x: 0, y: 1, z: 0, color: '#22c55e' },
+                { x: 1, y: 1, z: 0, color: '#3b82f6' }
+            ];
+            activeDecompositionIndex = -1;
+            refresh();
+        }
+
+        function randomizeVectors() {
+            vectors.forEach(v => {
+                v.x = Math.round(Math.random() * 4 - 2);
+                v.y = Math.round(Math.random() * 4 - 2);
+                v.z = Math.round(Math.random() * 4 - 2);
+            });
+            activeDecompositionIndex = -1;
+            refresh();
+        }
+
+        function toggleDecomposition(index) {
+            if (activeDecompositionIndex === index) {
+                activeDecompositionIndex = -1;
+            } else {
+                activeDecompositionIndex = index;
+            }
+            renderVectorInputs(); // Update button states
+            updateVisualization();
+        }
+
+        function refresh() {
+            calculationResult = calculateBasisAndRank();
+            // If active decomp vector becomes a basis vector, clear selection
+            if (activeDecompositionIndex !== -1 && calculationResult.basisIndices.includes(activeDecompositionIndex)) {
+                activeDecompositionIndex = -1;
+            }
+            renderVectorInputs();
+            updateVisualization();
+        }
+
+        // Calculation Core
+        function calculateBasisAndRank() {
+            // Use Math.js for robust matrix operations if needed, but simple Gaussian is fine for small scale
+            // We construct a matrix where columns are vectors
+            // To find column basis, we row reduce the Transpose. 
+            // Pivot rows in RREF of Transpose correspond to basis vectors? No.
+            // Standard method: Form matrix A with vectors as columns. 
+            // RREF(A) gives pivot columns. The corresponding columns in A are the basis.
+
+            const cols = vectors.length;
+            const rows = 3; // x, y, z
+
+            // Matrix A: 3 x N
+            let A = [[], [], []];
+            for (let i = 0; i < cols; i++) {
+                A[0].push(vectors[i].x);
+                A[1].push(vectors[i].y);
+                A[2].push(vectors[i].z);
+            }
+
+            // Gaussian Elimination to find RREF and Pivot Columns
+            // We need to keep track of operations to solve for coefficients?
+            // Actually, RREF directly gives linear dependencies.
+            // If RREF has pivot at col j, then v_j is basis.
+            // If col k is non-pivot, it's a linear combo of pivot cols.
+            // The coefficients are in the RREF column k.
+
+            // Deep copy A for RREF
+            let M = JSON.parse(JSON.stringify(A));
+            let pivotCols = [];
+            let freeCols = [];
+
+            let pivotRow = 0;
+            const width = M[0].length;
+            const height = M.length;
+
+            for (let col = 0; col < width; col++) {
+                if (pivotRow >= height) {
+                    freeCols.push(col);
+                    continue;
+                }
+
+                // Find pivot
+                let i = pivotRow;
+                while (i < height && Math.abs(M[i][col]) < 1e-10) {
+                    i++;
+                }
+
+                if (i < height) {
+                    // Found pivot
+                    pivotCols.push(col);
+
+                    // Swap rows
+                    [M[i], M[pivotRow]] = [M[pivotRow], M[i]];
+
+                    // Normalize pivot row
+                    const pivotVal = M[pivotRow][col];
+                    for (let j = col; j < width; j++) {
+                        M[pivotRow][j] /= pivotVal;
+                    }
+
+                    // Eliminate other rows
+                    for (let k = 0; k < height; k++) {
+                        if (k !== pivotRow) {
+                            const factor = M[k][col];
+                            for (let j = col; j < width; j++) {
+                                M[k][j] -= factor * M[pivotRow][j];
+                            }
+                        }
+                    }
+                    pivotRow++;
+                } else {
+                    freeCols.push(col);
+                }
+            }
+
+            // Now M is in RREF.
+            // For any free column k, the values in M[row][k] correspond to coefficients of pivot columns.
+            // Specifically, v_k = \sum (M[r][k] * v_{pivot_col_r})
+            // Wait, carefully:
+            // In RREF, a free column vector is a linear combo of PREVIOUS pivot columns.
+            // The coefficients are simply the values in that column corresponding to the pivot rows.
+
+            let relations = {};
+            freeCols.forEach(freeIdx => {
+                let coeffs = {};
+                // For each row in RREF that has a pivot
+                for (let r = 0; r < pivotRow; r++) {
+                    // Find which column is the pivot for this row
+                    // Since we stored pivotCols in order, pivotCols[r] is the column index for pivot in row r
+                    const basisIdx = pivotCols[r];
+                    const coeff = M[r][freeIdx];
+                    if (Math.abs(coeff) > 1e-10) {
+                        coeffs[basisIdx] = coeff;
+                    }
+                }
+                relations[freeIdx] = coeffs;
+            });
+
+            return {
+                rank: pivotCols.length,
+                basisIndices: pivotCols,
+                relations: relations
+            };
+        }
+
+        // Visualization
+        function updateVisualization() {
+            const { rank, basisIndices, relations } = calculationResult;
+
+            // 2. Update UI Text
+            document.getElementById('rankValue').textContent = rank;
+            const statusEl = document.getElementById('independenceStatus');
+            const explEl = document.getElementById('explanationText');
+
+            if (rank === vectors.length) {
+                statusEl.textContent = "线性无关";
+                statusEl.style.color = "green";
+                explEl.innerHTML = `极大无关组包含所有向量。<br>生成空间维度：${rank}。`;
+            } else {
+                statusEl.textContent = "线性相关";
+                statusEl.style.color = "orange";
+                explEl.innerHTML = `极大无关组为 { ${basisIndices.map(i => `v${i + 1}`).join(', ')} }。<br>剩余向量可由极大无关组线性表示。`;
+            }
+
+            // 3. Plot Data Construction
+            const data = [];
+
+            // Origin
+            data.push({
+                x: [0], y: [0], z: [0],
+                mode: 'markers',
+                marker: { size: 4, color: 'black' },
+                name: '原点',
+                showlegend: false
+            });
+
+            // Vectors
+            vectors.forEach((v, i) => {
+                const isBasis = basisIndices.includes(i);
+                const isDecomposing = (i === activeDecompositionIndex);
+
+                let opacity = 1.0;
+                if (activeDecompositionIndex !== -1) {
+                    // Focus mode: highlight basis and the active vector
+                    if (!isBasis && !isDecomposing) opacity = 0.1;
+                }
+
+                data.push({
+                    type: 'scatter3d',
+                    mode: 'lines+markers',
+                    x: [0, v.x],
+                    y: [0, v.y],
+                    z: [0, v.z],
+                    line: { color: v.color, width: isBasis ? 8 : 4 },
+                    marker: { size: isBasis ? 4 : 3, color: v.color },
+                    opacity: opacity,
+                    name: `v${i + 1}${isBasis ? ' (基)' : ''}`
+                });
+            });
+
+            // Visualization of Linear Combination (Decomposition)
+            if (activeDecompositionIndex !== -1) {
+                const targetIdx = activeDecompositionIndex;
+                const coeffs = relations[targetIdx];
+
+                if (coeffs) {
+                    const basisIndices = Object.keys(coeffs).map(Number);
+                    const numBasis = basisIndices.length;
+
+                    // 1. Draw component vectors from origin (The "Axes" of our shape)
+                    basisIndices.forEach(basisIdx => {
+                        const c = coeffs[basisIdx];
+                        const v = vectors[basisIdx];
+                        const px = c * v.x;
+                        const py = c * v.y;
+                        const pz = c * v.z;
+
+                        data.push({
+                            type: 'scatter3d',
+                            mode: 'lines',
+                            x: [0, px], y: [0, py], z: [0, pz],
+                            line: { color: v.color, width: 4, dash: 'solid' },
+                            hoverinfo: 'text',
+                            text: `分量 ${c.toFixed(2)} * v${basisIdx + 1}`,
+                            showlegend: false
+                        });
+                    });
+
+                    // 2. Draw Parallelogram (2 Basis Vectors)
+                    if (numBasis === 2) {
+                        const idx1 = basisIndices[0];
+                        const idx2 = basisIndices[1];
+                        const v1 = vectors[idx1];
+                        const v2 = vectors[idx2];
+                        const c1 = coeffs[idx1];
+                        const c2 = coeffs[idx2];
+
+                        // Component endpoints
+                        const p1 = { x: c1 * v1.x, y: c1 * v1.y, z: c1 * v1.z };
+                        const p2 = { x: c2 * v2.x, y: c2 * v2.y, z: c2 * v2.z };
+                        const sum = vectors[targetIdx]; // Should match p1 + p2
+
+                        // Draw parallel lines to complete the shape
+                        // Line from p1 to sum (Parallel to v2)
+                        data.push({
+                            type: 'scatter3d',
+                            mode: 'lines',
+                            x: [p1.x, sum.x], y: [p1.y, sum.y], z: [p1.z, sum.z],
+                            line: { color: v2.color, width: 2, dash: 'dash' }, // Color of v2
+                            showlegend: false,
+                            hoverinfo: 'skip'
+                        });
+
+                        // Line from p2 to sum (Parallel to v1)
+                        data.push({
+                            type: 'scatter3d',
+                            mode: 'lines',
+                            x: [p2.x, sum.x], y: [p2.y, sum.y], z: [p2.z, sum.z],
+                            line: { color: v1.color, width: 2, dash: 'dash' }, // Color of v1
+                            showlegend: false,
+                            hoverinfo: 'skip'
+                        });
+
+                        // Fill the parallelogram (Mesh)
+                        data.push({
+                            type: 'mesh3d',
+                            x: [0, p1.x, sum.x, p2.x],
+                            y: [0, p1.y, sum.y, p2.y],
+                            z: [0, p1.z, sum.z, p2.z],
+                            i: [0, 0], j: [1, 2], k: [2, 3], // Two triangles: 0-1-2 and 0-2-3
+                            opacity: 0.2,
+                            color: 'gray',
+                            name: '平行四边形'
+                        });
+
+                    } else if (numBasis === 3) {
+                        // 3. Draw Parallelepiped (3 Basis Vectors)
+                        // We have components p1, p2, p3. Sum = p1+p2+p3.
+                        // Vertices: 0, p1, p2, p3, p1+p2, p1+p3, p2+p3, p1+p2+p3
+                        const comps = basisIndices.map(idx => {
+                            const c = coeffs[idx];
+                            const v = vectors[idx];
+                            return { x: c * v.x, y: c * v.y, z: c * v.z, color: v.color };
+                        });
+                        const [p1, p2, p3] = comps;
+
+                        // Helper to add line
+                        const addLine = (start, vec, color) => {
+                            data.push({
+                                type: 'scatter3d',
+                                mode: 'lines',
+                                x: [start.x, start.x + vec.x],
+                                y: [start.y, start.y + vec.y],
+                                z: [start.z, start.z + vec.z],
+                                line: { color: color, width: 2, dash: 'dash' },
+                                showlegend: false,
+                                hoverinfo: 'skip'
+                            });
+                        };
+
+                        // From p1: add p2, add p3
+                        addLine(p1, p2, p2.color);
+                        addLine(p1, p3, p3.color);
+
+                        // From p2: add p1, add p3
+                        addLine(p2, p1, p1.color);
+                        addLine(p2, p3, p3.color);
+
+                        // From p3: add p1, add p2
+                        addLine(p3, p1, p1.color);
+                        addLine(p3, p2, p2.color);
+
+                        // Intermediate points
+                        const p12 = { x: p1.x + p2.x, y: p1.y + p2.y, z: p1.z + p2.z };
+                        const p13 = { x: p1.x + p3.x, y: p1.y + p3.y, z: p1.z + p3.z };
+                        const p23 = { x: p2.x + p3.x, y: p2.y + p3.y, z: p2.z + p3.z };
+
+                        // To Sum (p123): from p12 add p3, from p13 add p2, from p23 add p1
+                        addLine(p12, p3, p3.color);
+                        addLine(p13, p2, p2.color);
+                        addLine(p23, p1, p1.color);
+                    } else if (numBasis === 1) {
+                        // Just a line, already drawn by component vector
+                    }
+                }
+            } else {
+                // Draw Span Plane/Line if no specific decomposition is active
+                // (Same as before)
+                if (rank === 2 && basisIndices.length >= 2) {
+                    const v1 = vectors[basisIndices[0]];
+                    const v2 = vectors[basisIndices[1]];
+                    // Simple plane grid
+                    const px = [], py = [], pz = [];
+                    for (let s = -2; s <= 2; s += 4) {
+                        for (let t = -2; t <= 2; t += 4) {
+                            px.push(s * v1.x + t * v2.x);
+                            py.push(s * v1.y + t * v2.y);
+                            pz.push(s * v1.z + t * v2.z);
+                        }
+                    }
+                    data.push({
+                        type: 'mesh3d',
+                        x: px, y: py, z: pz,
+                        opacity: 0.1,
+                        color: 'gray',
+                        name: '生成平面'
+                    });
+                }
+            }
+
+            const layout = {
+                scene: {
+                    aspectmode: 'cube',
+                    xaxis: { range: [-5, 5], title: 'x' },
+                    yaxis: { range: [-5, 5], title: 'y' },
+                    zaxis: { range: [-5, 5], title: 'z' },
+                    camera: { eye: { x: 1.5, y: 1.5, z: 1.5 } }
+                },
+                margin: { l: 0, r: 0, b: 0, t: 0 },
+                showlegend: true,
+                legend: { x: 0, y: 1 }
+            };
+
+            Plotly.newPlot('plot', data, layout, { responsive: true });
+        }
+
+        // Start
+        init();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            Plotly.Plots.resize('plot');
+        });
+    </script>
+
+</body>
+
+</html>

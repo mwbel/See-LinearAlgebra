@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>初等方阵可视化</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'],
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      },
+      startup: {
+        ready: () => {
+          console.log('MathJax is loaded, but not yet initialized');
+          MathJax.startup.defaultReady();
+          MathJax.startup.promise.then(() => {
+            console.log('MathJax initial typesetting complete');
+          });
+        }
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      --bg: #f8f8ff; --panel: #ffffff; --accent: #3747ff; --accent-2: #6b6ee8; --text: #202124; --muted: #5f6368; --border: rgba(0,0,0,0.1);
+    }
+    body { margin:0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+    .page[data-autolatex="true"] { display:flex; flex-direction:column; min-height:100vh; }
+    header.page-header { border-bottom: 1px solid var(--border); background: #ffffff; }
+    .header-inner { max-width: 1200px; margin: 0 auto; padding: 20px 16px; display:flex; align-items:baseline; gap:16px; }
+    .title { font-size:20px; font-weight:600; color: var(--text); }
+    .subtitle { font-size:14px; color: var(--muted); }
+    .content { max-width:1200px; margin:0 auto; padding:20px 16px; display:grid; grid-template-columns: 1fr 1fr; gap:20px; }
+    .card { background: var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .card h3 { margin:0 0 12px; font-size:16px; color: var(--accent); }
+    .section-title { font-size:14px; color: var(--muted); margin: 8px 0 12px; }
+
+    .control { display:flex; flex-direction:column; gap:6px; background:#f0f2f5; border:1px solid var(--border); border-radius:8px; padding:8px; }
+    .control label { font-size:12px; color: var(--muted); }
+    .control input { background:#ffffff; color: var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-size:13px; }
+    .controls-row { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-bottom: 8px; }
+    .btn-row { display:flex; gap:8px; }
+    button { background: var(--accent); color: #ffffff; border:none; border-radius:6px; padding:6px 10px; font-weight:600; cursor:pointer; }
+    button:hover { background: var(--accent-2); }
+
+    .mathjax-block { background:#f0f2f5; border:1px dashed var(--border); border-radius:10px; padding:10px 12px; margin:10px 0; }
+    .formula { color: var(--text); text-align:left; line-height:1.6; }
+    mjx-container { overflow-x:auto; overflow-y:hidden; white-space:normal; }
+
+    .viz { height: 350px; }
+    .legend { font-size:12px; color: var(--muted); margin-top:8px; }
+
+    /* —— 统一线性代数模块的浅色风格与侧栏导航 —— */
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8f8ff; min-height: 100vh; color: #333; display: flex; }
+    .sidebar { width: 280px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); box-shadow: 2px 0 15px rgba(0,0,0,0.1); padding: 20px; position: fixed; height: 100vh; overflow-y: auto; z-index: 1000; }
+    .sidebar-title { font-size: 1.4em; font-weight: 700; color: #2d3748; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+    .nav-item { display: block; padding: 12px 15px; margin: 8px 0; color: #4a5568; text-decoration: none; border-radius: 10px; transition: all 0.3s; font-weight: 500; border-left: 4px solid transparent; }
+    .nav-item:hover { background: rgba(55, 71, 255, 0.08); color: #3747ff; transform: translateX(5px); border-left-color: #3747ff; }
+    .nav-item.active { background: rgba(55, 71, 255, 0.12); color: #3747ff; border-left-color: #3747ff; }
+    .page-content { margin-left: 280px; flex: 1; padding: 20px; }
+    .card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: none; }
+    .card h3 { color: #4a5568; font-size: 18px; }
+    .section-title { font-size: 1.5em; color: #4a5568; margin-bottom: 12px; border-bottom: 3px solid #3747ff; padding-bottom: 10px; }
+    .content { gap: 20px; }
+    .mathjax-block { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 10px; padding: 15px; }
+    .formula { color: #333; }
+    header.page-header { display: none; }
+    .matrix-preview { display:grid; grid-template-columns: repeat(3, 1fr); gap:6px; margin-top:10px; }
+    .matrix-cell { background:#f6f7ff; border:1px solid #e9ecef; border-radius:6px; padding:8px; text-align:center; font-size:13px; color: #1e1e2e; }
+    .matrix-cell.highlight { background: #e6f3ff; border-color: #3747ff; color: #3747ff; font-weight: bold; }
+
+    .example-buttons { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+    .example-btn { background: #3747ff; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
+    .example-btn:hover { background: #5a67d8; }
+
+    .tab-buttons { display: flex; gap: 8px; margin-bottom: 15px; }
+    .tab-btn { background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+    .tab-btn.active { background: #3747ff; }
+    .tab-btn:hover { background: #5a67d8; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+    <link rel="stylesheet" href="../linear-algebra-responsive.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-title">线性代数模块</div>
+    <a href="linear-algebra-module.html" class="nav-item">模块概览</a>
+    <a href="二阶行列式可视化.html" class="nav-item">二阶行列式</a>
+    <a href="三阶行列式可视化.html" class="nav-item">三阶行列式</a>
+    <a href="矩阵运算可视化.html" class="nav-item">矩阵运算</a>
+    <a href="向量空间可视化.html" class="nav-item">向量空间</a>
+    <a href="线性变换可视化.html" class="nav-item">线性变换</a>
+    <a href="矩阵高斯消元法可视化.html" class="nav-item">高斯消元法</a>
+    <a href="矩阵秩的可视化.html" class="nav-item">矩阵秩</a>
+    <a href="特征值分解可视化.html" class="nav-item">特征值分解</a>
+    <a href="旋转矩阵可视化.html" class="nav-item">旋转矩阵</a>
+    <a href="正交分解可视化.html" class="nav-item">正交分解</a>
+    <a href="初等方阵可视化.html" class="nav-item active">初等方阵</a>
+    <a href="../index.html">返回 "线性代数可视化世界"首页</a>
+    <a href="../../../index.html" class="nav-item">返回 "万物可视化"首页</a>
+  </div>
+  <div class="page-content">
+   <div class="page" data-autolatex="true">
+     <main class="content">
+      <!-- 第一行：初等方阵选择与配置 -->
+      <section class="card" style="grid-column: 1 / -1;">
+        <h3>初等方阵配置</h3>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
+          <!-- 左侧：初等方阵定义 -->
+          <div>
+            <div class="mathjax-block">
+              <div class="formula">$$ \text{初等方阵：由单位矩阵通过一次初等变换得到的矩阵} $$</div>
+            </div>
+
+            <div class="tab-buttons">
+              <button class="tab-btn active" onclick="switchTab('rowswap', this)">行交换矩阵</button>
+              <button class="tab-btn" onclick="switchTab('rowscale', this)">行倍乘矩阵</button>
+              <button class="tab-btn" onclick="switchTab('rowadd', this)">行相加矩阵</button>
+            </div>
+
+            <!-- 行交换矩阵 -->
+            <div id="rowswap-content" class="tab-content active">
+              <div class="mathjax-block">
+                <div class="formula">$$ P_{ij} = \text{交换单位矩阵的第 } i \text{ 行和第 } j \text{ 行} $$</div>
+              </div>
+              <div class="mathjax-block">
+                <div class="formula">$$ \text{效果：} P_{ij} \times A \text{ 交换矩阵 } A \text{ 的第 } i \text{ 行和第 } j \text{ 行} $$</div>
+              </div>
+            </div>
+
+            <!-- 行倍乘矩阵 -->
+            <div id="rowscale-content" class="tab-content">
+              <div class="mathjax-block">
+                <div class="formula">$$ D_i(k) = \text{单位矩阵的第 } i \text{ 行乘以 } k \neq 0 $$</div>
+              </div>
+              <div class="mathjax-block">
+                <div class="formula">$$ \text{效果：} D_i(k) \times A \text{ 将矩阵 } A \text{ 的第 } i \text{ 行乘以 } k $$</div>
+              </div>
+            </div>
+
+            <!-- 行相加矩阵 -->
+            <div id="rowadd-content" class="tab-content">
+              <div class="mathjax-block">
+                <div class="formula">$$ T_{ij}(k) = \text{单位矩阵的第 } i \text{ 行加上 } k \text{ 倍第 } j \text{ 行} $$</div>
+              </div>
+              <div class="mathjax-block">
+                <div class="formula">$$ \text{效果：} T_{ij}(k) \times A \text{ 将矩阵 } A \text{ 的第 } i \text{ 行加上 } k \text{ 倍第 } j \text{ 行} $$</div>
+              </div>
+            </div>
+
+            <div class="example-buttons">
+              <button class="example-btn" onclick="loadExample('identity')">单位矩阵</button>
+              <button class="example-btn" onclick="loadExample('row12')">交换第1、2行</button>
+              <button class="example-btn" onclick="loadExample('scale2')">第2行乘以2</button>
+              <button class="example-btn" onclick="loadExample('add21')">第2行+2×第1行</button>
+            </div>
+          </div>
+
+          <!-- 右侧：参数配置 -->
+          <div>
+            <div class="section-title">参数配置</div>
+
+            <!-- 行交换控制 -->
+            <div id="rowswap-controls" class="elementary-controls">
+              <div class="control">
+                <label>交换第 i 行</label>
+                <select id="swap-row-i">
+                  <option value="0">第1行</option>
+                  <option value="1" selected>第2行</option>
+                  <option value="2">第3行</option>
+                </select>
+              </div>
+              <div class="control">
+                <label>与第 j 行</label>
+                <select id="swap-row-j">
+                  <option value="0" selected>第1行</option>
+                  <option value="1">第2行</option>
+                  <option value="2">第3行</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 行倍乘控制 -->
+            <div id="rowscale-controls" class="elementary-controls" style="display: none;">
+              <div class="control">
+                <label>第 i 行</label>
+                <select id="scale-row">
+                  <option value="0">第1行</option>
+                  <option value="1" selected>第2行</option>
+                  <option value="2">第3行</option>
+                </select>
+              </div>
+              <div class="control">
+                <label>倍数 k</label>
+                <input id="scale-factor" type="number" step="0.5" value="2">
+              </div>
+            </div>
+
+            <!-- 行相加控制 -->
+            <div id="rowadd-controls" class="elementary-controls" style="display: none;">
+              <div class="control">
+                <label>第 i 行</label>
+                <select id="add-target-row">
+                  <option value="0">第1行</option>
+                  <option value="1" selected>第2行</option>
+                  <option value="2">第3行</option>
+                </select>
+              </div>
+              <div class="control">
+                <label>加上 k 倍第 j 行</label>
+                <select id="add-source-row">
+                  <option value="0" selected>第1行</option>
+                  <option value="1">第2行</option>
+                  <option value="2">第3行</option>
+                </select>
+              </div>
+              <div class="control">
+                <label>倍数 k</label>
+                <input id="add-factor" type="number" step="0.5" value="2">
+              </div>
+            </div>
+
+            <div class="section-title">当前初等方阵 E</div>
+            <div id="elementary-preview" class="matrix-preview"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 第二行：矩阵输入与对比 -->
+      <section class="card">
+        <h3>输入矩阵 A</h3>
+
+        <div class="controls-row">
+          <div class="control"><label>a₁₁</label><input id="a11" type="number" step="0.5" value="2" oninput="updateMatrixFromInput('a11', this.value)"></div>
+          <div class="control"><label>a₁₂</label><input id="a12" type="number" step="0.5" value="1" oninput="updateMatrixFromInput('a12', this.value)"></div>
+          <div class="control"><label>a₁₃</label><input id="a13" type="number" step="0.5" value="3" oninput="updateMatrixFromInput('a13', this.value)"></div>
+        </div>
+        <div class="controls-row">
+          <div class="control"><label>a₂₁</label><input id="a21" type="number" step="0.5" value="4" oninput="updateMatrixFromInput('a21', this.value)"></div>
+          <div class="control"><label>a₂₂</label><input id="a22" type="number" step="0.5" value="5" oninput="updateMatrixFromInput('a22', this.value)"></div>
+          <div class="control"><label>a₂₃</label><input id="a23" type="number" step="0.5" value="6" oninput="updateMatrixFromInput('a23', this.value)"></div>
+        </div>
+        <div class="controls-row">
+          <div class="control"><label>a₃₁</label><input id="a31" type="number" step="0.5" value="7" oninput="updateMatrixFromInput('a31', this.value)"></div>
+          <div class="control"><label>a₃₂</label><input id="a32" type="number" step="0.5" value="8" oninput="updateMatrixFromInput('a32', this.value)"></div>
+          <div class="control"><label>a₃₃</label><input id="a33" type="number" step="0.5" value="9" oninput="updateMatrixFromInput('a33', this.value)"></div>
+        </div>
+
+        <div class="example-buttons">
+          <button class="example-btn" onclick="loadTargetExample('identity')">单位矩阵</button>
+          <button class="example-btn" onclick="loadTargetExample('random')">随机矩阵</button>
+          <button class="example-btn" onclick="loadTargetExample('special')">特殊矩阵</button>
+          <button id="reset" style="margin-left: auto;">重置全部</button>
+        </div>
+
+        <div class="section-title">当前矩阵 A</div>
+        <div id="target-preview" class="matrix-preview"></div>
+      </section>
+
+      <section class="card">
+        <h3>变换结果矩阵 B = E × A</h3>
+
+        <div class="mathjax-block">
+          <div class="formula" id="result-formula">$$ B = E \times A $$</div>
+        </div>
+
+        <div class="section-title">变换后矩阵 B</div>
+        <div id="result-preview" class="matrix-preview"></div>
+
+        <div class="section-title">变换说明</div>
+        <div id="transform-explanation" class="formula">
+          选择一个初等方阵来查看变换效果
+        </div>
+      </section>
+
+      <!-- 第三行：3D可视化 -->
+      <section class="card" style="grid-column: 1 / -1;">
+        <h3>变换效果3D可视化</h3>
+        <div id="result-plot" class="viz" style="height: 500px;"></div>
+
+        <div class="legend">
+          <strong>变换效果：</strong><br>
+          <span style="color: #38a169;">■</span> 原始矩阵A的列向量<br>
+          <span style="color: #f56565;">■</span> 变换后矩阵B的列向量<br>
+          <span style="color: #718096;">■</span> 变换轨迹（虚线）<br>
+          <strong>教育价值：</strong>通过3D向量展示初等方阵如何改变基向量方向和长度
+        </div>
+      </section>
+     </main>
+   </div>
+  </div>
+
+  <script>
+    let currentTab = 'rowswap';
+    let elementaryMatrix = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    let targetMatrix = [[2, 1, 3], [4, 5, 6], [7, 8, 9]];
+
+    // 标签页切换
+    function switchTab(tabName, buttonElement) {
+      // 隐藏所有标签页内容
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      // 移除所有按钮的活动状态
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // 显示选中的标签页
+      document.getElementById(`${tabName}-content`).classList.add('active');
+      buttonElement.classList.add('active');
+
+      currentTab = tabName;
+
+      // 根据选择的标签页启用相应的输入控件
+      updateInputControls(tabName);
+
+      // 自动加载对应示例
+      loadTabExample(tabName);
+    }
+
+    function updateInputControls(tabName) {
+      // 隐藏所有控制面板
+      document.getElementById('rowswap-controls').style.display = 'none';
+      document.getElementById('rowscale-controls').style.display = 'none';
+      document.getElementById('rowadd-controls').style.display = 'none';
+
+      // 显示对应的控制面板
+      if (tabName === 'rowswap') {
+        document.getElementById('rowswap-controls').style.display = 'block';
+      } else if (tabName === 'rowscale') {
+        document.getElementById('rowscale-controls').style.display = 'block';
+      } else if (tabName === 'rowadd') {
+        document.getElementById('rowadd-controls').style.display = 'block';
+      }
+    }
+
+    // 根据标签页加载对应示例
+    function loadTabExample(tabName) {
+      switch(tabName) {
+        case 'rowswap':
+          loadExample('row12');
+          break;
+        case 'rowscale':
+          loadExample('scale2');
+          break;
+        case 'rowadd':
+          loadExample('add21');
+          break;
+      }
+    }
+
+    // 直接从输入更新矩阵
+    function updateMatrixFromInput(inputId, value) {
+      // 根据输入ID确定矩阵位置
+      const row = parseInt(inputId.charAt(1)) - 1;
+      const col = parseInt(inputId.charAt(2)) - 1;
+
+      if (row >= 0 && row < 3 && col >= 0 && col < 3) {
+        targetMatrix[row][col] = parseFloat(value) || 0;
+
+        // 立即更新显示
+        renderMatrixPreview(targetMatrix, 'target-preview');
+        updateVisualization();
+      }
+    }
+
+    // 矩阵乘法
+    function multiplyMatrices(A, B) {
+      const result = [];
+      for (let i = 0; i < 3; i++) {
+        result[i] = [];
+        for (let j = 0; j < 3; j++) {
+          result[i][j] = 0;
+          for (let k = 0; k < 3; k++) {
+            result[i][j] += A[i][k] * B[k][j];
+          }
+        }
+      }
+      return result;
+    }
+
+    // 渲染矩阵预览
+    function renderMatrixPreview(mat, containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = mat.flat().map(v =>
+        `<div class="matrix-cell">${v.toFixed(2)}</div>`
+      ).join('');
+    }
+
+    // 创建初等方阵
+    function createRowSwapMatrix(i, j) {
+      const E = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+      [E[i][i], E[j][j]] = [E[j][j], E[i][i]];
+      return E;
+    }
+
+    function createRowScaleMatrix(i, k) {
+      const E = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+      E[i][i] = k;
+      return E;
+    }
+
+    function createRowAddMatrix(i, j, k) {
+      const E = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+      E[i][j] = k;
+      return E;
+    }
+
+    // 加载初等方阵示例
+    function loadExample(type) {
+      switch(type) {
+        case 'identity':
+          elementaryMatrix = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+          break;
+        case 'row12':
+          elementaryMatrix = createRowSwapMatrix(0, 1);
+          break;
+        case 'scale2':
+          elementaryMatrix = createRowScaleMatrix(1, 2);
+          break;
+        case 'add21':
+          elementaryMatrix = createRowAddMatrix(1, 0, 2);
+          break;
+      }
+
+      renderMatrixPreview(elementaryMatrix, 'elementary-preview');
+      updateVisualization();
+    }
+
+    // 加载目标矩阵示例
+    function loadTargetExample(type) {
+      switch(type) {
+        case 'identity':
+          targetMatrix = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+          break;
+        case 'random':
+          targetMatrix = Array(3).fill().map(() =>
+            Array(3).fill().map(() => Math.floor(Math.random() * 10))
+          );
+          break;
+        case 'special':
+          targetMatrix = [[3, 1, 2], [6, 2, 4], [9, 3, 6]];
+          break;
+      }
+
+      // 更新输入框
+      ['a11', 'a12', 'a13', 'a21', 'a22', 'a23', 'a31', 'a32', 'a33'].forEach((id, index) => {
+        const row = Math.floor(index / 3);
+        const col = index % 3;
+        document.getElementById(id).value = targetMatrix[row][col];
+      });
+
+      renderMatrixPreview(targetMatrix, 'target-preview');
+      updateVisualization();
+    }
+
+    // 应用初等变换
+    function applyElementary() {
+      let formula = '';
+
+      if (currentTab === 'rowswap') {
+        const i = parseInt(document.getElementById('swap-row-i').value);
+        const j = parseInt(document.getElementById('swap-row-j').value);
+        elementaryMatrix = createRowSwapMatrix(i, j);
+        formula = `$$ E = P_{${i+1}${j+1}} = \\begin{bmatrix} ${elementaryMatrix.map(row => row.join(' & ')).join(' \\\\n')} \\end{bmatrix} $$`;
+      } else if (currentTab === 'rowscale') {
+        const i = parseInt(document.getElementById('scale-row').value);
+        const k = parseFloat(document.getElementById('scale-factor').value);
+        elementaryMatrix = createRowScaleMatrix(i, k);
+        formula = `$$ E = D_${i+1}(${k}) = \\begin{bmatrix} ${elementaryMatrix.map(row => row.join(' & ')).join(' \\\\n')} \\end{bmatrix} $$`;
+      } else if (currentTab === 'rowadd') {
+        const i = parseInt(document.getElementById('add-target-row').value);
+        const j = parseInt(document.getElementById('add-source-row').value);
+        const k = parseFloat(document.getElementById('add-factor').value);
+        elementaryMatrix = createRowAddMatrix(i, j, k);
+        formula = `$$ E = T_{${i+1}${j+1}}(${k}) = \\begin{bmatrix} ${elementaryMatrix.map(row => row.join(' & ')).join(' \\\\n')} \\end{bmatrix} $$`;
+      }
+
+      document.getElementById('result-formula').innerHTML = formula;
+      renderMatrixPreview(elementaryMatrix, 'elementary-preview');
+      updateVisualization();
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise(['#result-formula']).catch(err =>
+          console.log('MathJax error:', err)
+        );
+      }
+    }
+
+    // 更新可视化
+    function updateVisualization() {
+      const resultMatrix = multiplyMatrices(elementaryMatrix, targetMatrix);
+
+      renderMatrixPreview(targetMatrix, 'target-preview');
+      renderMatrixPreview(resultMatrix, 'result-preview');
+
+      // 创建可视化
+      createVisualization(targetMatrix, resultMatrix);
+
+      // 更新说明
+      updateExplanation();
+    }
+
+    // 创建3D可视化
+    function createVisualization(A, B) {
+      // 提取列向量用于可视化
+      const vectorsA = [
+        { x: [0, A[0][0]], y: [0, A[1][0]], z: [0, A[2][0]], name: '矩阵A第1列', type: 'scatter3d', mode: 'lines+markers', line: { color: '#38a169', width: 6 }, marker: { color: '#38a169', size: 8 } },
+        { x: [0, A[0][1]], y: [0, A[1][1]], z: [0, A[2][1]], name: '矩阵A第2列', type: 'scatter3d', mode: 'lines+markers', line: { color: '#38a169', width: 6 }, marker: { color: '#38a169', size: 8 }, showlegend: false },
+        { x: [0, A[0][2]], y: [0, A[1][2]], z: [0, A[2][2]], name: '矩阵A第3列', type: 'scatter3d', mode: 'lines+markers', line: { color: '#38a169', width: 6 }, marker: { color: '#38a169', size: 8 }, showlegend: false }
+      ];
+
+      const vectorsB = [
+        { x: [0, B[0][0]], y: [0, B[1][0]], z: [0, B[2][0]], name: '矩阵B第1列', type: 'scatter3d', mode: 'lines+markers', line: { color: '#f56565', width: 6 }, marker: { color: '#f56565', size: 8 } },
+        { x: [0, B[0][1]], y: [0, B[1][1]], z: [0, B[2][1]], name: '矩阵B第2列', type: 'scatter3d', mode: 'lines+markers', line: { color: '#f56565', width: 6 }, marker: { color: '#f56565', size: 8 }, showlegend: false },
+        { x: [0, B[0][2]], y: [0, B[1][2]], z: [0, B[2][2]], name: '矩阵B第3列', type: 'scatter3d', mode: 'lines+markers', line: { color: '#f56565', width: 6 }, marker: { color: '#f56565', size: 8 }, showlegend: false }
+      ];
+
+      // 创建变换轨迹（从A到B的对应列）
+      const gridLines = [];
+      for (let i = 0; i < 3; i++) {
+        // 从A的第i列到B的第i列
+        gridLines.push({
+          x: [A[0][i], B[0][i]],
+          y: [A[1][i], B[1][i]],
+          z: [A[2][i], B[2][i]],
+          type: 'scatter3d',
+          mode: 'lines',
+          line: { color: '#718096', width: 2, dash: 'dot' },
+          name: '变换轨迹',
+          showlegend: i === 0
+        });
+      }
+
+      const allTraces = [...vectorsA, ...vectorsB, ...gridLines];
+
+      // 计算合适的范围
+      const allValues = [...A.flat(), ...B.flat()];
+      const maxVal = Math.max(...allValues.map(Math.abs), 1);
+      const range = [-maxVal * 1.2, maxVal * 1.2];
+
+      const layout = {
+        title: {
+          text: '初等方阵变换效果：B = E × A',
+          font: { size: 16 }
+        },
+        scene: {
+          xaxis: { title: 'X轴', range: range },
+          yaxis: { title: 'Y轴', range: range },
+          zaxis: { title: 'Z轴', range: range },
+          aspectmode: 'cube',
+          camera: {
+            eye: { x: 1.5, y: 1.5, z: 1.5 },
+            center: { x: 0, y: 0, z: 0 }
+          }
+        },
+        margin: { l: 0, r: 0, t: 60, b: 0 },
+        legend: {
+          x: 0,
+          y: 1,
+          bgcolor: 'rgba(255,255,255,0.8)',
+          bordercolor: '#333',
+          borderwidth: 1
+        }
+      };
+
+      Plotly.react('result-plot', allTraces, layout, { displayModeBar: true });
+    }
+
+    // 更新变换说明
+    function updateExplanation() {
+      const explanationEl = document.getElementById('transform-explanation');
+      if (!explanationEl) return;
+
+      const explanation = getTransformationExplanation();
+      explanationEl.innerHTML = explanation;
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([explanationEl]).catch(err =>
+          console.log('MathJax error:', err)
+        );
+      }
+    }
+
+    // 获取变换说明
+    function getTransformationExplanation() {
+      const E = elementaryMatrix;
+      const A = targetMatrix;
+      const B = multiplyMatrices(E, A);
+
+      let explanation = '<div style="line-height: 1.8">';
+      explanation += '<strong>当前变换：</strong><br>';
+      explanation += `B = E × A<br>`;
+      explanation += `<strong>其中：</strong><br>`;
+      explanation += `E = [[${E[0].map(v => v.toFixed(1)).join(',')}], [${E[1].map(v => v.toFixed(1)).join(',')}], [${E[2].map(v => v.toFixed(1)).join(',')}]]<br>`;
+      explanation += `A = [[${A[0].map(v => v.toFixed(1)).join(',')}], [${A[1].map(v => v.toFixed(1)).join(',')}], [${A[2].map(v => v.toFixed(1)).join(',')}]]<br>`;
+      explanation += `B = [[${B[0].map(v => v.toFixed(1)).join(',')}], [${B[1].map(v => v.toFixed(1)).join(',')}], [${B[2].map(v => v.toFixed(1)).join(',')}]]<br><br>`;
+      explanation += '<strong>效果说明：</strong><br>';
+
+      // 根据初等方阵类型给出具体说明
+      if (currentTab === 'rowswap') {
+        explanation += '行交换矩阵会交换矩阵的对应行。如果交换第1、2行，则矩阵的第1行和第2行互换位置。';
+      } else if (currentTab === 'rowscale') {
+        explanation += '行倍乘矩阵会将指定行的所有元素乘以同一个非零常数。例如，第2行乘以2会使第2行的所有值变为原来的2倍。';
+      } else if (currentTab === 'rowadd') {
+        explanation += '行相加矩阵会将一行加上另一行的指定倍数。例如，第2行加上2倍第1行，会将第2行每个元素加上2倍第1行对应位置的元素。';
+      }
+
+      explanation += '</div>';
+      return explanation;
+    }
+
+    // 事件监听器
+    document.addEventListener('DOMContentLoaded', function() {
+      // 设置初始标签页
+      updateInputControls(currentTab);
+
+      // 初始化显示
+      renderMatrixPreview(elementaryMatrix, 'elementary-preview');
+      renderMatrixPreview(targetMatrix, 'target-preview');
+
+      // 加载默认示例
+      loadTabExample(currentTab);
+
+      // 示例按钮事件
+      document.querySelectorAll('.example-btn').forEach(btn => {
+        if (btn.onclick) return; // 已有事件处理器的跳过
+      });
+
+      // 输入框变化事件 - 备用事件监听器
+      const matrixInputs = ['a11', 'a12', 'a13', 'a21', 'a22', 'a23', 'a31', 'a32', 'a33'];
+      matrixInputs.forEach((id, index) => {
+        const element = document.getElementById(id);
+        if (element) {
+          // 添加change事件作为备用
+          element.addEventListener('change', function() {
+            const row = Math.floor(index / 3);
+            const col = index % 3;
+            targetMatrix[row][col] = parseFloat(this.value) || 0;
+            renderMatrixPreview(targetMatrix, 'target-preview');
+            updateVisualization();
+          });
+        }
+      });
+
+      // 初等方阵控制事件
+      ['swap-row-i', 'swap-row-j', 'scale-row', 'scale-factor', 'add-target-row', 'add-factor', 'add-source-row'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.addEventListener('change', function() {
+            applyElementary();
+          });
+        }
+      });
+
+      // 重置按钮事件
+      const resetBtn = document.getElementById('reset');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+        elementaryMatrix = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+        targetMatrix = [[2, 1, 3], [4, 5, 6], [7, 8, 9]];
+
+        // 重置输入框
+        ['a11', 'a12', 'a13', 'a21', 'a22', 'a23', 'a31', 'a32', 'a33'].forEach((id, index) => {
+          const row = Math.floor(index / 3);
+          const col = index % 3;
+          document.getElementById(id).value = targetMatrix[row][col];
+        });
+
+        renderMatrixPreview(elementaryMatrix, 'elementary-preview');
+        renderMatrixPreview(targetMatrix, 'target-preview');
+        updateVisualization();
+      });
+
+      // 初始可视化
+      updateVisualization();
+    });
+
+    // 强制更新确保显示
+    setTimeout(() => {
+      renderMatrixPreview(targetMatrix, 'target-preview');
+      updateVisualization();
+    }, 100);
+
+    // 等待MathJax加载
+    if (window.MathJax) {
+      MathJax.startup.promise.then(() => {
+        console.log('MathJax loaded, initializing...');
+        updateVisualization();
+      }).catch(err => {
+        console.log('MathJax failed to load, using fallback...');
+        updateVisualization();
+      });
+    } else {
+      setTimeout(() => {
+        console.log('MathJax not available, using fallback initialization...');
+        updateVisualization();
+      }, 1000);
+    }
+  </script>
+    <script src="../linear-algebra-layout.js"></script>
+</body>
+</html>

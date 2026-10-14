@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>奇异值分解(SVD)可视化</title>
+  <link rel="stylesheet" href="../shared-styles.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="../linear-algebra-responsive.css">
+</head>
+<body>
+  <div class="sidebar">
+    <div class="nav-title">线性代数</div>
+    <div class="nav-subtitle">模块导航</div>
+    <ul>
+      <li><a href="../index.html">模块概览</a></li>
+      <li><a href="二阶行列式可视化.html">二阶行列式</a></li>
+      <li><a href="三阶行列式可视化.html">三阶行列式</a></li>
+      <li><a href="矩阵运算可视化.html">矩阵运算</a></li>
+      <li><a href="向量空间可视化.html">向量空间</a></li>
+      <li><a href="线性变换可视化.html">线性变换</a></li>
+      <li><a href="矩阵高斯消元法可视化.html">高斯消元法</a></li>
+      <li><a href="特征值分解可视化.html">特征值分解</a></li>
+      <li><a href="旋转矩阵可视化.html">旋转矩阵</a></li>
+      <li><a href="正交分解可视化.html">正交分解</a></li>
+      <li class="active"><a href="奇异值分解可视化.html">奇异值分解</a></li>
+      <li><a href="线性方程组可视化.html">线性方程组</a></li>
+      <li><a href="向量投影可视化.html">向量投影</a></li>
+    </ul>
+  </div>
+  <div class="page-content">
+    <div class="content">
+      <!-- 左栏：代数定义与公式 -->
+      <section class="card">
+        <h3>奇异值分解(SVD)</h3>
+        <div class="section-title">定义</div>
+        <div class="mathjax-block">
+          <div class="formula">\[ A = U \Sigma V^T \]</div>
+        </div>
+        <p style="font-size: 14px; color: #5f6368; line-height: 1.6;">
+          对于任意 m×n 矩阵 A，存在分解：<br>
+          • U: m×m 正交矩阵（左奇异向量）<br>
+          • Σ: m×n 对角矩阵（奇异值）<br>
+          • V: n×n 正交矩阵（右奇异向量）
+        </p>
+
+        <div class="section-title">矩阵参数设置</div>
+        <div class="control-grid">
+          <div class="control">
+            <label>a₁₁</label>
+            <input id="a11" type="number" step="0.1" value="3" />
+          </div>
+          <div class="control">
+            <label>a₁₂</label>
+            <input id="a12" type="number" step="0.1" value="1" />
+          </div>
+        </div>
+        <div class="control-grid">
+          <div class="control">
+            <label>a₂₁</label>
+            <input id="a21" type="number" step="0.1" value="1" />
+          </div>
+          <div class="control">
+            <label>a₂₂</label>
+            <input id="a22" type="number" step="0.1" value="2" />
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <button id="preset1">预设1: 拉伸变换</button>
+          <button id="preset2">预设2: 旋转拉伸</button>
+          <button id="preset3">预设3: 对称矩阵</button>
+        </div>
+
+        <div class="section-title">SVD分解结果</div>
+        <div class="mathjax-block">
+          <div class="formula" id="svd-result">\[ \text{调整参数查看SVD分解} \]</div>
+        </div>
+
+        <div class="section-title">奇异值</div>
+        <div class="mathjax-block">
+          <div class="formula" id="singular-values">\[ \sigma_1, \sigma_2 \]</div>
+        </div>
+      </section>
+
+      <!-- 右栏：几何意义与交互 -->
+      <section class="card">
+        <h3>几何意义与可视化</h3>
+        <div id="plot" class="viz"></div>
+        <div class="legend">
+          <strong>几何解释：</strong><br>
+          • <span style="color: #3747ff;">蓝色圆</span>：原始单位圆<br>
+          • <span style="color: #ff6b6b;">红色椭圆</span>：变换后的椭圆<br>
+          • <span style="color: #51cf66;">绿色箭头</span>：右奇异向量 V（输入方向）<br>
+          • <span style="color: #ffa94d;">橙色箭头</span>：左奇异向量 U（输出方向）<br>
+          • 奇异值 σ₁, σ₂ 表示椭圆的主轴长度<br>
+          • SVD将任意矩阵分解为旋转-拉伸-旋转的组合
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // MathJax 配置
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        processEscapes: true
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+
+    function getMatrix() {
+      return [
+        [parseFloat(document.getElementById('a11').value), parseFloat(document.getElementById('a12').value)],
+        [parseFloat(document.getElementById('a21').value), parseFloat(document.getElementById('a22').value)]
+      ];
+    }
+
+    // 简化的2x2 SVD计算
+    function computeSVD(A) {
+      // 计算 A^T * A
+      const ATA = [
+        [A[0][0]*A[0][0] + A[1][0]*A[1][0], A[0][0]*A[0][1] + A[1][0]*A[1][1]],
+        [A[0][1]*A[0][0] + A[1][1]*A[1][0], A[0][1]*A[0][1] + A[1][1]*A[1][1]]
+      ];
+
+      // 计算特征值（奇异值的平方）
+      const trace = ATA[0][0] + ATA[1][1];
+      const det = ATA[0][0]*ATA[1][1] - ATA[0][1]*ATA[1][0];
+      const lambda1 = (trace + Math.sqrt(trace*trace - 4*det)) / 2;
+      const lambda2 = (trace - Math.sqrt(trace*trace - 4*det)) / 2;
+
+      const sigma1 = Math.sqrt(Math.max(0, lambda1));
+      const sigma2 = Math.sqrt(Math.max(0, lambda2));
+
+      // 计算右奇异向量 V
+      let v1, v2;
+      if (Math.abs(ATA[0][1]) > 1e-10) {
+        v1 = [ATA[0][1], lambda1 - ATA[0][0]];
+        v2 = [ATA[0][1], lambda2 - ATA[0][0]];
+      } else {
+        v1 = [1, 0];
+        v2 = [0, 1];
+      }
+
+      // 归一化
+      const norm1 = Math.sqrt(v1[0]*v1[0] + v1[1]*v1[1]);
+      const norm2 = Math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]);
+      v1 = [v1[0]/norm1, v1[1]/norm1];
+      v2 = [v2[0]/norm2, v2[1]/norm2];
+
+      // 计算左奇异向量 U = A*V/sigma
+      let u1 = [0, 0], u2 = [0, 0];
+      if (sigma1 > 1e-10) {
+        u1 = [(A[0][0]*v1[0] + A[0][1]*v1[1])/sigma1, (A[1][0]*v1[0] + A[1][1]*v1[1])/sigma1];
+      }
+      if (sigma2 > 1e-10) {
+        u2 = [(A[0][0]*v2[0] + A[0][1]*v2[1])/sigma2, (A[1][0]*v2[0] + A[1][1]*v2[1])/sigma2];
+      }
+
+      return {
+        U: [u1, u2],
+        sigma: [sigma1, sigma2],
+        V: [v1, v2]
+      };
+    }
+
+    function updatePlot() {
+      const A = getMatrix();
+      const svd = computeSVD(A);
+
+      // 生成单位圆
+      const theta = [];
+      for (let i = 0; i <= 100; i++) {
+        theta.push(2 * Math.PI * i / 100);
+      }
+      const circleX = theta.map(t => Math.cos(t));
+      const circleY = theta.map(t => Math.sin(t));
+
+      // 变换后的椭圆
+      const ellipseX = [];
+      const ellipseY = [];
+      for (let i = 0; i < circleX.length; i++) {
+        const x = circleX[i];
+        const y = circleY[i];
+        ellipseX.push(A[0][0]*x + A[0][1]*y);
+        ellipseY.push(A[1][0]*x + A[1][1]*y);
+      }
+
+      const traces = [
+        {
+          x: circleX,
+          y: circleY,
+          mode: 'lines',
+          name: '单位圆',
+          line: { color: '#3747ff', width: 2 }
+        },
+        {
+          x: ellipseX,
+          y: ellipseY,
+          mode: 'lines',
+          name: '变换后',
+          line: { color: '#ff6b6b', width: 3 }
+        }
+      ];
+
+      // 添加右奇异向量 V
+      traces.push({
+        x: [0, svd.V[0][0]*1.5],
+        y: [0, svd.V[0][1]*1.5],
+        mode: 'lines+markers',
+        name: 'v₁',
+        line: { color: '#51cf66', width: 3 },
+        marker: { size: 8 }
+      });
+      traces.push({
+        x: [0, svd.V[1][0]*1.5],
+        y: [0, svd.V[1][1]*1.5],
+        mode: 'lines+markers',
+        name: 'v₂',
+        line: { color: '#51cf66', width: 3, dash: 'dash' },
+        marker: { size: 8 }
+      });
+
+      // 添加左奇异向量 U
+      traces.push({
+        x: [0, svd.U[0][0]*svd.sigma[0]],
+        y: [0, svd.U[0][1]*svd.sigma[0]],
+        mode: 'lines+markers',
+        name: 'σ₁u₁',
+        line: { color: '#ffa94d', width: 3 },
+        marker: { size: 8 }
+      });
+      traces.push({
+        x: [0, svd.U[1][0]*svd.sigma[1]],
+        y: [0, svd.U[1][1]*svd.sigma[1]],
+        mode: 'lines+markers',
+        name: 'σ₂u₂',
+        line: { color: '#ffa94d', width: 3, dash: 'dash' },
+        marker: { size: 8 }
+      });
+
+      const layout = {
+        title: 'SVD几何解释：单位圆的变换',
+        xaxis: { title: 'x', range: [-5, 5], zeroline: true, scaleanchor: 'y' },
+        yaxis: { title: 'y', range: [-5, 5], zeroline: true },
+        showlegend: true,
+        hovermode: 'closest',
+        plot_bgcolor: '#f8f8ff',
+        paper_bgcolor: '#ffffff'
+      };
+
+      Plotly.newPlot('plot', traces, layout, { responsive: true });
+
+      // 更新SVD结果显示
+      const U = svd.U;
+      const V = svd.V;
+      const sigma = svd.sigma;
+
+      document.getElementById('svd-result').innerHTML = `
+        \\[ U = \\begin{bmatrix} ${U[0][0].toFixed(3)} & ${U[1][0].toFixed(3)} \\\\ ${U[0][1].toFixed(3)} & ${U[1][1].toFixed(3)} \\end{bmatrix}, \\quad
+        \\Sigma = \\begin{bmatrix} ${sigma[0].toFixed(3)} & 0 \\\\ 0 & ${sigma[1].toFixed(3)} \\end{bmatrix}, \\quad
+        V = \\begin{bmatrix} ${V[0][0].toFixed(3)} & ${V[1][0].toFixed(3)} \\\\ ${V[0][1].toFixed(3)} & ${V[1][1].toFixed(3)} \\end{bmatrix} \\]
+      `;
+
+      document.getElementById('singular-values').innerHTML = `
+        \\[ \\sigma_1 = ${sigma[0].toFixed(3)}, \\quad \\sigma_2 = ${sigma[1].toFixed(3)} \\]
+      `;
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    }
+
+    // 预设按钮
+    document.getElementById('preset1').addEventListener('click', () => {
+      document.getElementById('a11').value = 3;
+      document.getElementById('a12').value = 0;
+      document.getElementById('a21').value = 0;
+      document.getElementById('a22').value = 1;
+      updatePlot();
+    });
+
+    document.getElementById('preset2').addEventListener('click', () => {
+      document.getElementById('a11').value = 2;
+      document.getElementById('a12').value = 1;
+      document.getElementById('a21').value = 1;
+      document.getElementById('a22').value = 2;
+      updatePlot();
+    });
+
+    document.getElementById('preset3').addEventListener('click', () => {
+      document.getElementById('a11').value = 2;
+      document.getElementById('a12').value = 1;
+      document.getElementById('a21').value = 1;
+      document.getElementById('a22').value = 3;
+      updatePlot();
+    });
+
+    // 监听输入变化
+    ['a11', 'a12', 'a21', 'a22'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updatePlot);
+    });
+
+    // 初始化
+    updatePlot();
+  </script>
+    <script src="../linear-algebra-layout.js"></script>
+</body>
+</html>

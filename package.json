@@ -1,0 +1,86 @@
+{
+  "name": "@alvisualization/linear-algebra",
+  "version": "3.0.0",
+  "description": "线性代数可视化模块 - 可插拔共享模块 | Linear Algebra Visualization Module - Pluggable Shared Module",
+  "main": "linear-algebra-api.js",
+  "module": "linear-algebra-api.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "*.js",
+    "*.css",
+    "*.html",
+    "pages/",
+    "assets/",
+    "types/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required - pure JavaScript module\"",
+    "serve": "python3 -m http.server 8000",
+    "lint": "eslint *.js",
+    "docs": "jsdoc -c jsdoc.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jwcai-sh/See-LinearAlgebra.git"
+  },
+  "keywords": [
+    "linear-algebra",
+    "visualization",
+    "mathematics",
+    "education",
+    "plotly",
+    "mathjax",
+    "interactive",
+    "matrix",
+    "vector",
+    "determinant",
+    "eigenvalue",
+    "教育",
+    "数学",
+    "线性代数",
+    "可视化"
+  ],
+  "author": "AI Assistant (Claude)",
+  "license": "MIT",
+  "peerDependencies": {
+    "plotly.js": "^2.27.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "jsdoc": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "exports": {
+    ".": {
+      "import": "./linear-algebra-api.js",
+      "require": "./linear-algebra-api.js"
+    },
+    "./config": "./module.config.js",
+    "./loader": "./linear-algebra-loader.js",
+    "./database": "./visualization-database.js",
+    "./generator": "./page-generator.js",
+    "./styles": "./shared-styles.css",
+    "./package.json": "./package.json"
+  },
+  "cdn": {
+    "plotly": "https://cdn.plot.ly/plotly-2.27.0.min.js",
+    "mathjax": "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js",
+    "polyfill": "https://polyfill.io/v3/polyfill.min.js?features=es6"
+  },
+  "config": {
+    "defaultTheme": "default",
+    "autoInit": true,
+    "enableDatabase": true,
+    "enablePageGenerator": true
+  }
+}
